@@ -6,6 +6,9 @@ edition = "2018"
 
 [dependencies]
 bootloader = "0.8.0"
+lazy_static = { version = "1.0", features = [ "spin_no_std" ] }
+spin = "0.5.2"
+volatile = "0.2.6"
 
 [profile.dev]
 panic = "abort"
