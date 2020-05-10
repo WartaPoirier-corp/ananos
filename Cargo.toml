@@ -1,0 +1,14 @@
+[package]
+name = "os"
+version = "0.1.0"
+authors = ["Ana Gelez <ana@gelez.xyz>"]
+edition = "2018"
+
+[dependencies]
+bootloader = "0.8.0"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
