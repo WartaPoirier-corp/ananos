@@ -142,3 +142,23 @@ pub fn _print(args: core::fmt::Arguments) {
     use core::fmt::Write;
     WRITER.lock().write_fmt(args).unwrap();
 }
+
+#[cfg(test)]
+mod tests {
+    #[test_case]
+    fn print_byte() {
+        print!("H");
+    }
+
+    #[test_case]
+    fn print_string() {
+        println!("Hello world!");
+    }
+
+    #[test_case]
+    fn print_a_lot_of_string() {
+        for i in 0..200 {
+            println!("{}", i);
+        }
+    }
+}
