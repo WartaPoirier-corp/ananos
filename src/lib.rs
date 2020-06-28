@@ -1,13 +1,23 @@
 #![cfg_attr(test, no_main)]
-#![feature(custom_test_frameworks)]
+#![feature(custom_test_frameworks, abi_x86_interrupt)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![no_std]
 
 use core::panic::PanicInfo;
 
+pub mod gdt;
+pub mod interrupt;
+pub mod memory;
 pub mod serial;
 pub mod vga;
+
+pub fn init() {
+    gdt::init();
+    interrupt::init_idt();
+    unsafe { interrupt::PICS.lock().initialize() };
+    x86_64::instructions::interrupts::enable();
+}
 
 pub fn test_runner(tests: &[&dyn Fn()]) {
     serial_println!("Running {} tests", tests.len());
@@ -24,15 +34,24 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[FAIL]");
     serial_println!("ERROR : {}", info);
     exit_qemu(QemuExitCode::Failure);
-    loop {}
+    halt_loop()
 }
+
+pub fn halt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
+
+#[cfg(test)]
+bootloader::entry_point!(kernel_main_test);
 
 /// Entry point for `cargo xtest`
 #[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+fn kernel_main_test(_boot_info: &'static bootloader::BootInfo) -> ! {
+    init();
     test_main();
-    loop {}
+    halt_loop()
 }
 
 #[cfg(test)]

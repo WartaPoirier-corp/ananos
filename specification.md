@@ -46,12 +46,90 @@ The most importants ideas are :
 
 ### Type system
 
-- Native types: things processors understand (u8, u16, u32, u64, i8, i16, i32, i64, f32, f64 (and why not 128 variants too))
-- references (i.e non-NULL pointers)
-- Sum types (just ADT or GADT too?)
-- Product types (fields may be named or not (tuples VS struct))
-- Modules
-- Polymorphic types
+We define a few natives types, embedded in the "compiler":
+
+- `!`, that cannot be built
+- `()`, that can be built in exactly one way: `()`
+- `bool`, that is either `true` or `false`
+- Combinations of `u`/`i` and `8`/`16`/`32`/`64`/`128`/`size`, for integers
+- `f32`/`f64` for floats
+- `char` for a single Unicode code point (the C char is `u8`)
+
+And we introduce the following rules to build new types:
+
+#### Sum types
+
+You define a list of constructors, with eventual associated data.
+If unambiguous, the constructors may be anonymous.
+
+```rust
+type Foo = Bar | Baz
+type X = Y(i32) | Z(f32)
+type A = i32 | f32
+```
+
+#### Product types
+
+You define a set of values to have to get a value of your type.
+Each value may or may not have a name.
+
+```rust
+type Foo = Bar * Baz
+type X = y : i32 * z : f32
+type A = x : X * Foo 
+```
+
+#### Dependent types
+
+There is two kind of values that you can work on: compile-time values,
+and run-time values. This allows us to have dependent types.
+The first kind of values is written between `<>` to make a difference.
+
+```
+type SizedVec<size : usize * t : Type> = ...
+```
+
+The above type will get monomorphized at compile time. This equivalent
+will not, and will use run-time polymorphism:
+
+```
+type SizedVec(size : usize * t : Type) = ...
+```
+
+Thus, we can see types as functions returning something of type `Type`.
+
+All of a function compile-time parameters get monomorphized, and you'll
+have as much variants of the same function as needed in your final binary.
+This allows the developer to choose where to put the balance between
+performance and binary size.
+
+If a function only has compile-time arguments, it may be called at compile-time.
+It may make the type system turing complete, making inference impossible in some
+cases, but maybe we could limit control structures to run time to limit this issue?
+I think we will see depending if we really need inference, or if adding types
+annotations is not too inconvenient.
+
+#### Traits
+
+Traits are basically functions `Type -> Type` saying if a type matches
+some constraints. It returns `!` if it does not, and the same type if
+it does. This way, we can do:
+
+```rust
+trait X { ... }
+fn foo<x : Type * impl_x : X(x)>(arg : impl_x) { ... }
+```
+
+Because compile-time expressions are not compiled, just run in some kind
+of VM/interpreter by the compiler.
+
+#### Modules
+
+You can split code in modules, that can themselves contain modules, and you can import
+modules. Pretty much like JS, Python, Rust, or any modern language.
+
+#### Pointers
+
 
 ### Package publishing
 
@@ -195,6 +273,7 @@ Then, drivers and packages can provide concrete types, that apps can use.
 - <http://www.righto.com/2017/10/the-xerox-alto-smalltalk-and-rewriting.html?showComment=1508781022450#c7613952874348706529>
 - <http://okmij.org/ftp/papers/DreamOSPaper.html>
 - <http://zge.us.to/txt/unix-harmful.html>
+- <https://github.com/aluntzer/gtknodes>
 
 And also probably (just bookmarks, I have not read them yet):
 

@@ -1,4 +1,4 @@
-#![feature(custom_test_frameworks)]
+#![feature(custom_test_frameworks, abi_x86_interrupt)]
 #![test_runner(os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![no_std]
@@ -11,7 +11,7 @@ use os::println;
 #[panic_handler]
 fn panic_handler(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    os::halt_loop();
 }
 
 #[cfg(test)]
@@ -20,14 +20,25 @@ fn panic_handler(info: &PanicInfo) -> ! {
     os::test_panic_handler(info)
 }
 
-#[no_mangle]
-extern "C" fn _start() -> ! {
+bootloader::entry_point!(kernel_main);
+
+fn kernel_main(boot_info: &'static bootloader::BootInfo) -> ! {
+    use x86_64::{structures::paging::Page, VirtAddr};
+    use os::memory;
+
     println!("Bienvenue dans ananOS !");
+    os::init();
+
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut frame_allocator = unsafe {
+        memory::BootInfoFrameAllocator::init(boot_info.memory_map)
+    };
 
     #[cfg(test)]
     test_main();
 
-    loop {}
+    os::halt_loop();
 }
 
 #[cfg(test)]
