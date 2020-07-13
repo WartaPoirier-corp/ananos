@@ -41,6 +41,11 @@ fn kernel_main(boot_info: &'static bootloader::BootInfo) -> ! {
     let x = alloc::boxed::Box::new(42);
     println!("box: {}", x);
 
+    let mut exec = os::task::executor::Executor::new();
+    exec.spawn(os::task::Task::new(example_task()));
+    exec.spawn(os::task::Task::new(os::task::keyboard::print_keypresses()));
+    exec.run();
+
     #[cfg(test)]
     test_main();
 
@@ -53,3 +58,13 @@ fn trivial_test() {
     assert!(2 + 2 == 4);
 }
 
+// Tests for async
+
+async fn async_number() -> u32 {
+    42
+}
+
+async fn example_task() {
+    let number = async_number().await;
+    println!("async number: {}", number);
+}

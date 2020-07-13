@@ -6,6 +6,9 @@ edition = "2018"
 
 [dependencies]
 bootloader = { version = "0.9.3", features = ["map_physical_memory"]}
+crossbeam-queue = { version = "0.2.1", default-features = false, features = ["alloc"] }
+conquer-once = { version = "0.2.0", default-features = false }
+futures-util = { version = "0.3.4", default-features = false, features = ["alloc"] }
 lazy_static = { version = "1.0", features = [ "spin_no_std" ] }
 pc-keyboard = "0.5.0"
 pic8259_simple = "0.2.0"

@@ -5,6 +5,7 @@
     alloc_error_handler,
     const_in_array_repeat_expressions,
     const_fn,
+    wake_trait
 )]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
@@ -19,6 +20,7 @@ pub mod gdt;
 pub mod interrupt;
 pub mod memory;
 pub mod serial;
+pub mod task;
 pub mod vga;
 
 pub fn init() {
