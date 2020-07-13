@@ -1,11 +1,20 @@
 #![cfg_attr(test, no_main)]
-#![feature(custom_test_frameworks, abi_x86_interrupt)]
+#![feature(
+    custom_test_frameworks,
+    abi_x86_interrupt,
+    alloc_error_handler,
+    const_in_array_repeat_expressions,
+    const_fn,
+)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![no_std]
 
+extern crate alloc;
+
 use core::panic::PanicInfo;
 
+pub mod allocator;
 pub mod gdt;
 pub mod interrupt;
 pub mod memory;

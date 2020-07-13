@@ -4,6 +4,8 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 use core::panic::PanicInfo;
 use os::println;
 
@@ -30,10 +32,14 @@ fn kernel_main(boot_info: &'static bootloader::BootInfo) -> ! {
     os::init();
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let _mapper = unsafe { memory::init(phys_mem_offset) };
-    let _frame_allocator = unsafe {
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut frame_allocator = unsafe {
         memory::BootInfoFrameAllocator::init(&boot_info.memory_map)
     };
+    os::allocator::init_heap(&mut mapper, &mut frame_allocator).unwrap();
+
+    let x = alloc::boxed::Box::new(42);
+    println!("box: {}", x);
 
     #[cfg(test)]
     test_main();

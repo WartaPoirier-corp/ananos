@@ -149,6 +149,8 @@ pub fn _print(args: core::fmt::Arguments) {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test_case]
     fn print_byte() {
         print!("H");
@@ -176,8 +178,8 @@ mod tests {
             let mut writer = WRITER.lock();
             writeln!(writer, "\n{}", s).expect("writeln failed");
             for (i, c) in s.chars().enumerate() {
-                let screen_char = writer.buffer.chars[BUFFER_HEIGHT - 2][i].read();
-                assert_eq!(char::from(screen_char.ascii_character), c);
+                let screen_char = writer.buffer.0[BUFFER_HEIGHT - 2][i].read();
+                assert_eq!(char::from(screen_char.ascii), c);
             }
         });
     }
