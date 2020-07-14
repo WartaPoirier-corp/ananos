@@ -49,3 +49,8 @@ trait ExecutionSecurity {
 ```
 
 Here too, if not specified, `can_run = true`.
+
+All of these functions should be deterministic, so that their result can be cached (for performance).
+The fact that they are not `async` will make it very difficult to query the database
+for additional info, so we should be safe anyway (and because the kernel will assume they are
+deterministic, if they are not, the behavior will be wrong anyway).
