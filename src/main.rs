@@ -40,6 +40,16 @@ fn kernel_main(boot_info: &'static bootloader::BootInfo) -> ! {
 
     let x = alloc::boxed::Box::new(42);
     println!("box: {}", x);
+    
+    os::db::init();
+    {
+        let mut db = os::db::DB.lock();
+        if let Some(mut datab) = db.as_mut() {
+            let handle = datab.open(os::db::Type::byte_type(), datab.find_memory_location());
+            let num = datab.read(handle);
+            println!("read from DB: {}", num[0]);
+        }
+    }
 
     let mut exec = os::task::executor::Executor::new();
     exec.spawn(os::task::Task::new(example_task()));
