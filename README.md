@@ -3,7 +3,7 @@
 An experimental OS. The goals are:
 
 - to learn how computer works on a lower level ;
-- if we get far enough without being discouraged, to experiment with new ideas for operating systems (see `specification.md` for a few ideas) ;
+- if we get far enough without being discouraged, to experiment with new ideas for operating systems (see `docs/specification.md` for a few ideas) ;
 
 The goal is not to make a real OS that can run in production.
 
