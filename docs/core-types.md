@@ -15,6 +15,13 @@ Result<Ok : U, Error : U>
 
 /// Zero or one value
 Option<Type : U>
+
+/// A String type
+String
+
+/// A type representing a type, used for reflection
+/// and polymorphism
+Type
 ```
 
 ## Needed for the system to work as expected by most people
@@ -44,10 +51,4 @@ Modules that should be defined by the OS, but are related to a specific domain.
 - Some DOM/web browser API? Complex and should be avoided ideally
 - A webcam/camera API
 - Subscriptions (for news feed, etc)
-
-- paramètres
-- code
-- internet
-- compta
-- news
-- caméra
+- UI framework

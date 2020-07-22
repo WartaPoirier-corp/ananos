@@ -12,27 +12,23 @@ in reality we will get a pointer to a Waker and that kind of things).
 
 ## Database interaction
 
-- `open<T: Type>(T, limit: u64) -> StreamHandle<T>`, limit of 0 means as much as possible
-- `async read(StreamHandle<T>, location: Option<LocationId>) -> T`
-- `async write(StreamHandle<T>, T) -> WriteStatus`
-- `close(StreamHandle<_>)`
+Database interaction is build around *streams*, that can be though as
+file descriptors for structured data.
+
+- `open(T : U * limit : u64) -> StreamHandle<T>`
+   Limit of 0 means as much as possible
+- `async read(T : U * stream : StreamHandle<T> * location : Option<LocationId>) -> T`
+   Reads the next object of the stream (similarly to `Iterator::next` in Rust).
+   If location is specified only objects from this location will be accepted.
+   Otherwise, objects can any location may be returned.
+- `async write(T : U * stream : StreamHandle<T> * location : Option<LocationId> * obj : T) -> Result<T * IoError>`
+   Write an object to a given stream. This adds it to the end of the stream, and
+   can eventually have side effects depending on the location (like writing to the disk,
+   or sending data to a server). If `location` is not specified, it will be saved to
+   the default location (usually the RAM).
+
+Once done with a stream, it should be `free`-ed.
 
 Almost all other traditional system calls can be emulated with the database:
 reading from a device, getting system time, opening a TCP connection, etc.
 
----
-
-```rust
-enum WriteStatus {
-    /// In case the location (RAM, HDD, SSD, USB key, server, etc) was unambiguous
-    Done,
-    /// In case it was not clear where to do the write
-    UnknownLocation,
-}
-
-impl WriteStatus {
-    async fn define_location_if_needed(self, location: LocationId) -> WriteStatus {}
-}
-
-struct LocationId(u64);
-```

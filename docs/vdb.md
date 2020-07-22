@@ -2,6 +2,8 @@
 title: Virtual Database
 ---
 
+At the core of this OS is a database of structured data, instead of files.
+
 Similarly to Linux that exposes some files that are not really on any disk,
 the database will primarly be a virtual database.
 
