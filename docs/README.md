@@ -6,17 +6,23 @@ project.
 
 ## Table of contents
 
-1. Base concepts
-  1. [Introduction](introduction.md)
-  2. [Virtual database](vdb.md)
-  3. [Type system](type-system.md)
-2. Higher level architecture
-  1. [Core types](core-types.md)
-  2. [Drivers](drivers.md)
-  3. [Security](security.md)
-3. Concrete implementation
-  1. [System calls](system-calls.md)
-  2. [Disk format](disk-format.md)
-4. [Unfinished notes](notes.md)
+**I. Base concepts**
+
+1. [Introduction](introduction.md)
+2. [Virtual database](vdb.md)
+3. [Type system](type-system.md)
+
+**II. Higher level architecture**
+
+1. [Core types](core-types.md)
+2. [Drivers](drivers.md)
+3. [Security](security.md)
+
+**III. Concrete implementation**
+
+1. [System calls](system-calls.md)
+2. [Disk format](disk-format.md)
+
+**IV. [Unfinished notes](notes.md)**
 
 
