@@ -7,8 +7,8 @@ in reality we will get a pointer to a Waker and that kind of things).
 
 ## Memory management
 
-- `malloc(size) -> Result<*mut (), ()>`
-- `free(ptr: Any)`
+- `malloc(size) -> Result<&Any, ()>`
+- `free(ptr: &Any)`
 
 ## Database interaction
 
