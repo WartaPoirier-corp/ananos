@@ -100,6 +100,8 @@ But I'm learning about all of that, and other people with more experience may he
 - <https://www.youtube.com/watch?v=NY6XqmMm4YA&feature=youtu.be&t=585>
 - <https://www.youtube.com/watch?v=8pTEmbeENF4>
 - <https://programmingmadecomplicated.wordpress.com/2017/08/12/there-is-only-one-os-and-its-been-obsolete-for-decades/>
+- <https://medium.com/@luisobo/why-does-programming-suck-6b253ebfc607>
+- <http://www.vpri.org/pdf/rn2006002_nsfprop.pdf>
 
 And also probably (just bookmarks, I have not read them yet):
 
