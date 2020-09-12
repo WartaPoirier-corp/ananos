@@ -1,4 +1,7 @@
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+use x86_64::structures::idt::{
+    InterruptDescriptorTable, InterruptStackFrame,
+    PageFaultErrorCode
+};
 use crate::println;
 use crate::gdt;
 use spin;
@@ -32,7 +35,18 @@ lazy_static::lazy_static! {
         unsafe {
             idt.double_fault.set_handler_fn(double_fault_handler)
                 .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+            idt.page_fault.set_handler_fn(page_fault_handler)
+                .set_stack_index(gdt::PAGE_FAULT_IST_INDEX);
+            idt.general_protection_fault.set_handler_fn(gp_handler)
+                .set_stack_index(gdt::GENERAL_PROTECTION_FAULT_IST_INDEX);
+
+            idt.slice_mut(0x80..0x81)[0]
+                .set_handler_fn(syscall)
+                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX)
+                .set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
+        idt.stack_segment_fault.set_handler_fn(ss_fault_handler);
+        idt.segment_not_present.set_handler_fn(segment_not_present);
 
         // PIC interrupts
         idt[InterruptIndex::Timer.as_usize()]
@@ -46,6 +60,59 @@ lazy_static::lazy_static! {
 
 pub fn init_idt() {
     IDT.load();
+}
+
+extern "x86-interrupt" fn syscall(
+    _stack: &mut InterruptStackFrame,
+) {
+    println!("Hello, userspace!");
+    loop {}
+}
+
+extern "x86-interrupt" fn segment_not_present(
+    stack: &mut InterruptStackFrame,
+    code: u64,
+) {
+    let ip = stack.instruction_pointer.as_ptr();
+    let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
+    println!("Code: {:?}", inst);
+    println!("SEGMENT NOT PRESENT ({:b}) at {:?}", code, ip);
+    loop {}
+}
+extern "x86-interrupt" fn page_fault_handler(
+    stack: &mut InterruptStackFrame,
+    error_code: PageFaultErrorCode
+) {
+    println!("PAGE FAULT");
+    let ip = stack.instruction_pointer.as_ptr();
+    let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
+    println!("Code: {:?}", inst);
+    println!("{:#?}\n{:#?}", stack, error_code);
+    loop {}
+}
+
+extern "x86-interrupt" fn gp_handler(
+    stack: &mut InterruptStackFrame,
+    code: u64,
+) {
+    let ip = stack.instruction_pointer.as_ptr();
+    let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
+    println!("Code: {:?}", inst);
+    println!("{:b}", code >> 3);
+    let sp = stack.stack_pointer.as_ptr();
+    let st: [u64; 32] = unsafe { core::ptr::read(sp) };
+    crate::serial_println!("----------\nStack at {:p}", ip);
+    for s in st.iter() { crate::serial_println!("{:#018x} ({:#065b})", s, s); }
+    println!("GENERAL PROTECTION FAULT ({:#x} = {:#b}) at {:?}", code, code, ip);
+    println!("{:#?}", stack);
+    loop {}
+}
+
+extern "x86-interrupt" fn ss_fault_handler(
+    _stack: &mut InterruptStackFrame,
+    code: u64,
+) {
+    println!("STACK SEGMENT FAULT ({})", code);
 }
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(
@@ -74,13 +141,24 @@ extern "x86-interrupt" fn timer_interrupt_handler(
 extern "x86-interrupt" fn breakpoint_handler(
     stack: &mut InterruptStackFrame
 ) {
-    println!("BREAKPOINT: {:#?}", stack);
+    let ip = stack.instruction_pointer.as_ptr();
+    let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
+    crate::serial_println!("-------------------\nCode: {:?}", inst);
+    let sp = stack.stack_pointer.as_ptr();
+    let st: [u64; 32] = unsafe { core::ptr::read(sp) };
+    crate::serial_println!("Stack at {:p}", ip);
+    for s in st.iter() { crate::serial_println!("{:#018x} ({:#065b})", s, s); }
+
+    crate::serial_println!("BREAKPOINT: {:#?}", stack);
 }
 
 extern "x86-interrupt" fn double_fault_handler(
     stack: &mut InterruptStackFrame,
     error_code: u64
 ) -> ! {
+    let ip = stack.instruction_pointer.as_ptr();
+    let ip: [u8; 8] = unsafe { core::ptr::read(ip) };
+    println!("Code: {:?}", ip);
     panic!("DOUBLE FAULT (code : {}) : {:#?}", error_code, stack);
 }
 

@@ -1,4 +1,4 @@
-#![feature(custom_test_frameworks, abi_x86_interrupt)]
+#![feature(custom_test_frameworks, abi_x86_interrupt, asm)]
 #![test_runner(os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![no_std]
@@ -44,12 +44,15 @@ fn kernel_main(boot_info: &'static bootloader::BootInfo) -> ! {
     os::db::init();
     {
         let mut db = os::db::DB.lock();
-        if let Some(mut datab) = db.as_mut() {
+        if let Some(datab) = db.as_mut() {
             let handle = datab.open(os::db::Type::byte_type(), datab.find_memory_location());
             let num = datab.read(handle);
             println!("read from DB: {}", num[0]);
         }
     }
+
+    println!("Entering usermode (maybe)");
+    os::gdt::do_context_switch(&mut mapper, &mut frame_allocator);
 
     let mut exec = os::task::executor::Executor::new();
     exec.spawn(os::task::Task::new(example_task()));
@@ -59,7 +62,7 @@ fn kernel_main(boot_info: &'static bootloader::BootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
-    os::halt_loop();
+    // os::halt_loop();
 }
 
 #[cfg(test)]

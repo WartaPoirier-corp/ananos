@@ -120,7 +120,7 @@ impl Location for MemoryLocation {
             },
             data: {
                 let mut vec = Vec::with_capacity(MEMORY_DB_SIZE);
-                vec.push(42);
+                vec.push(19);
                 vec
             },
             handles: spin::Mutex::new(BTreeMap::new()),

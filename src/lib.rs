@@ -5,7 +5,8 @@
     alloc_error_handler,
     const_in_array_repeat_expressions,
     const_fn,
-    wake_trait
+    wake_trait,
+    asm,
 )]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
