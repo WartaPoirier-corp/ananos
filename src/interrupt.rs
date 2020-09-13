@@ -98,7 +98,6 @@ extern "x86-interrupt" fn gp_handler(
     let ip = stack.instruction_pointer.as_ptr();
     let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
     println!("Code: {:?}", inst);
-    println!("{:b}", code >> 3);
     let sp = stack.stack_pointer.as_ptr();
     let st: [u64; 32] = unsafe { core::ptr::read(sp) };
     crate::serial_println!("----------\nStack at {:p}", ip);
@@ -141,6 +140,8 @@ extern "x86-interrupt" fn timer_interrupt_handler(
 extern "x86-interrupt" fn breakpoint_handler(
     stack: &mut InterruptStackFrame
 ) {
+    // FIXME: it looks like this handler causes a page fault
+    crate::serial_println!("BREAKPOINT: {:#?}", stack);
     let ip = stack.instruction_pointer.as_ptr();
     let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
     crate::serial_println!("-------------------\nCode: {:?}", inst);
@@ -148,8 +149,6 @@ extern "x86-interrupt" fn breakpoint_handler(
     let st: [u64; 32] = unsafe { core::ptr::read(sp) };
     crate::serial_println!("Stack at {:p}", ip);
     for s in st.iter() { crate::serial_println!("{:#018x} ({:#065b})", s, s); }
-
-    crate::serial_println!("BREAKPOINT: {:#?}", stack);
 }
 
 extern "x86-interrupt" fn double_fault_handler(

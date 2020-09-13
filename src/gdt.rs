@@ -91,8 +91,8 @@ pub fn do_context_switch(
     unsafe {
         interrupts::disable();
 
-        let data = GDT.1.user_data_selector.0;
-        let _code = GDT.1.user_code_selector.0; // TODO: actually use it
+        let data_sel = GDT.1.user_data_selector.0;
+        let code_sel = GDT.1.user_code_selector.0;
 
         // Map a user stack and some space for code
         const STACK: u64 = 0x600_000;
@@ -127,12 +127,13 @@ pub fn do_context_switch(
             "or rax, 0x200",
             "push rax",
             
-            "push 0x2b",
-            "push rdi",
+            "push rcx",
+            "push rdx",
             "iretq",
-            in("rdi") CODE,
-            in("rax") data,
+            in("rax") data_sel,
             in("rbx") STACK,
+            in("rcx") code_sel,
+            in("rdx") CODE,
         );
         unreachable!();
     }
