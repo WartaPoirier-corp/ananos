@@ -5,6 +5,8 @@ title: System calls
 At a very high level (like we use async and everything, but
 in reality we will get a pointer to a Waker and that kind of things).
 
+- `exit`
+
 ## Memory management
 
 - `malloc(size) -> Result<&Any, ()>`

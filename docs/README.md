@@ -22,6 +22,7 @@ project.
 
 1. [System calls](system-calls.md)
 2. [Disk format](disk-format.md)
+3. [Executable format](executable-format.md)
 
 **IV. [Unfinished notes](notes.md)**
 
