@@ -13,11 +13,11 @@ pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 pub const PAGE_FAULT_IST_INDEX: u16 = 1;
 pub const GENERAL_PROTECTION_FAULT_IST_INDEX: u16 = 2;
 
-struct Selectors {
-    code_selector: SegmentSelector,
-    tss_selector: SegmentSelector,
-    user_code_selector: SegmentSelector,
-    user_data_selector: SegmentSelector,
+pub struct Selectors {
+    pub code_selector: SegmentSelector,
+    pub tss_selector: SegmentSelector,
+    pub user_code_selector: SegmentSelector,
+    pub user_data_selector: SegmentSelector,
 }
 
 lazy_static! {
@@ -76,6 +76,10 @@ pub fn init() {
         set_cs(GDT.1.code_selector);
         load_tss(GDT.1.tss_selector);
     }
+}
+
+pub fn get_selectors<'a>() -> &'a Selectors {
+    &GDT.1
 }
 
 /// A function to enter usermode

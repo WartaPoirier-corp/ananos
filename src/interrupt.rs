@@ -65,7 +65,7 @@ pub fn init_idt() {
 extern "x86-interrupt" fn syscall(
     _stack: &mut InterruptStackFrame,
 ) {
-    println!("Hello, userspace!");
+    println!("PERDU.E !");
     loop {}
 }
 

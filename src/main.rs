@@ -51,8 +51,19 @@ fn kernel_main(boot_info: &'static bootloader::BootInfo) -> ! {
         }
     }
 
-    println!("Entering usermode (maybe)");
-    os::gdt::do_context_switch(&mut mapper, &mut frame_allocator);
+    let mut sched = os::process::scheduler::Scheduler::new();
+    let proc = os::process::Process::new(
+        alloc::vec![0x90, 0xcd, 0x80],
+        phys_mem_offset,
+        &boot_info.memory_map,
+        &mut mapper,
+        &mut frame_allocator
+    );
+    println!("Adding a new process");
+    sched.spawn(proc);
+    println!("Going to usermode");
+    sched.next();
+
 
     let mut exec = os::task::executor::Executor::new();
     exec.spawn(os::task::Task::new(example_task()));
