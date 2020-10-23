@@ -83,7 +83,7 @@ extern "x86-interrupt" fn page_fault_handler(
     stack: &mut InterruptStackFrame,
     error_code: PageFaultErrorCode
 ) {
-    println!("PAGE FAULT");
+    println!("FAUTE DE SEGMENTAGE !");
     let ip = stack.instruction_pointer.as_ptr();
     let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
     println!("Code: {:?}", inst);

@@ -44,11 +44,11 @@ impl<'a> Scheduler<'a> {
         let code_sel = sel.user_code_selector.0;
         const STACK: u64 = 0x1000_0000;
         const CODE: u64 = 0x2000_0000;
-        let p4_addr = process.page_table_frame.start_address().as_u64();
+        // let p4_addr = process.page_table_frame.start_address().as_u64();
 
         unsafe {
+            x86_64::registers::control::Cr3::write(process.page_table_frame, x86_64::registers::control::Cr3Flags::empty());
             asm!(
-                "mov cr3, r15",
                 "mov ds, ax",
                 "mov es, ax",
                 "mov fs, ax",
@@ -69,7 +69,6 @@ impl<'a> Scheduler<'a> {
                 in("rbx") STACK,
                 in("rcx") code_sel,
                 in("rdx") CODE,
-                in("r15") p4_addr,
             );    
         }
     }

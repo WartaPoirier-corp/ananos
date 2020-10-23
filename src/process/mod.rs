@@ -71,18 +71,27 @@ impl<'a> Process<'a> {
         use bootloader::bootinfo::MemoryRegionType;
         use x86_64::PhysAddr;
 
+        crate::println!("offset = {} = {:#x}", offset.as_u64(), offset.as_u64());
+
+        let p4_frame = frame_alloc.allocate_frame().unwrap();
+        crate::println!("P4 frame = {:?}", p4_frame);
         let mut page_table = PageTable::new();
+
         let mut mapper = unsafe { OffsetPageTable::new(&mut page_table, offset) };
-        for reg in mem_regions.iter().filter(|r| r.region_type == MemoryRegionType::Kernel || r.region_type == MemoryRegionType::KernelStack).map(|r| r.range) {
+        for reg in mem_regions.iter().map(|r| { crate::println!("{:?}", r); r }).filter(|r| r.region_type == MemoryRegionType::Kernel || r.region_type == MemoryRegionType::KernelStack) {
             for frame in PhysFrame::<Size4KiB>::range(
-                PhysFrame::containing_address(PhysAddr::new(reg.start_addr())),
-                PhysFrame::containing_address(PhysAddr::new(reg.end_addr())),
+                PhysFrame::containing_address(PhysAddr::new(reg.range.start_addr())),
+                PhysFrame::containing_address(PhysAddr::new(reg.range.end_addr())),
             ) {
-                let virt_addr = offset + frame.start_address().as_u64();
-                // crate::println!("{:?} {:?} {:?}", offset, frame, virt_addr);
-                let page = Page::containing_address(virt_addr);
-                unsafe { 
-                    mapper.map_to(page, frame, PageTableFlags::PRESENT | PageTableFlags::WRITABLE, frame_alloc)
+                let virt_addr1 = offset + frame.start_address().as_u64();
+                let virt_addr2 = VirtAddr::new(frame.start_address().as_u64());
+                let page1 = Page::containing_address(virt_addr1);
+                let page2 = Page::containing_address(virt_addr2);
+                unsafe {                                                                             // TODO: shouldn't be USER_ACCESSIBLE
+                    mapper.map_to(page1, frame, PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE, frame_alloc)
+                        .unwrap()
+                        .ignore();
+                    mapper.map_to(page2, frame, PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE, frame_alloc)
                         .unwrap()
                         .ignore();
                 }
@@ -140,10 +149,7 @@ impl<'a> Process<'a> {
             }
         }
 
-        crate::println!("Copying P4");
 
-        let p4_frame = frame_alloc.allocate_frame().unwrap();
-        crate::println!("P4 frame = {:?}", p4_frame);
         unsafe {
             kernel_mapper.map_to(
                 Page::containing_address(VirtAddr::new(0x4000_0000)),
@@ -152,10 +158,8 @@ impl<'a> Process<'a> {
                 frame_alloc,
             ).unwrap().flush();
             let p4_pointer = 0x4000_0000 as *mut PageTable;
-            core::ptr::copy_nonoverlapping(&page_table as *const PageTable, p4_pointer, 1);
+            core::ptr::copy_nonoverlapping(&page_table as *const _, p4_pointer, 1);
         }
-
-        // unsafe { asm!("mov rax, cr3", in("rax") p4_addr.as_u64()); }
 
         Process {
             status: ProcessStatus::Ready,

@@ -1,4 +1,4 @@
-#![feature(custom_test_frameworks, abi_x86_interrupt, asm)]
+#![feature(custom_test_frameworks, abi_x86_interrupt, asm, const_mut_refs)]
 #![test_runner(os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![no_std]
