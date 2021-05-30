@@ -108,10 +108,21 @@ pub fn do_context_switch(
         mapper.map_to(page, frame, flags, frame_alloc).unwrap().flush();
 
         let code = CODE as *mut u8;
-        // Execute "nop; int 0x80" (system call)
+        // nop
         core::ptr::write(code, 0x90);
-        core::ptr::write(code.add(1), 0xcd);
-        core::ptr::write(code.add(2), 0x80);
+        // mov ax, 0x00
+        core::ptr::write(code.add(1), 0x66);
+        core::ptr::write(code.add(2), 0xb8);
+        core::ptr::write(code.add(3), 0x00);
+        core::ptr::write(code.add(4), 0x00);
+        // mov bx, 0xFF
+        core::ptr::write(code.add(5), 0x66);
+        core::ptr::write(code.add(6), 0xbb);
+        core::ptr::write(code.add(7), 0xff);
+        core::ptr::write(code.add(8), 0x00);
+        // int 0x80 (system call)
+        core::ptr::write(code.add(9), 0xcd);
+        core::ptr::write(code.add(10), 0x80);
 
         asm!(
             "mov ds, ax",

@@ -65,7 +65,32 @@ pub fn init_idt() {
 extern "x86-interrupt" fn syscall(
     _stack: InterruptStackFrame,
 ) {
-    println!("Hello, userspace!");
+    let code: usize;
+    let arg1: usize;
+    unsafe {
+        asm!(
+            "",
+            out("rax") code,
+            out("rbx") arg1,
+        );
+    }
+    match code {
+        0 => {
+            let mut fb = crate::FB.lock();
+            if let Some(ref mut fb) = *fb {
+                let buff = unsafe {
+                    core::slice::from_raw_parts_mut(
+                        fb.0 as *mut u8,
+                        fb.1
+                    )
+                }; 
+                for byte in buff {
+                    *byte = arg1 as u8;
+                }
+            }
+        },
+        _ => {},
+    }
     loop {}
 }
 

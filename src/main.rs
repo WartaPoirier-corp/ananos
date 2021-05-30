@@ -28,9 +28,13 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
     use x86_64::VirtAddr;
     use os::memory;
 
-    if let Some(fb) = boot_info.framebuffer.as_mut() {
-        for byte in fb.buffer_mut() {
-            *byte = 0xFF;
+    if let bootloader::boot_info::Optional::Some(ref fb) = boot_info.framebuffer {
+        let fb = fb.buffer();
+        let fb_len = fb.len();
+        let fb_start = (&fb[0] as *const _) as u64;
+        {
+            let mut fb = os::FB.lock();
+            *fb = Some((fb_start, fb_len));
         }
     }
 
@@ -43,14 +47,6 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
     };
     os::allocator::init_heap(&mut mapper, &mut frame_allocator).unwrap();
 
-
-    if let Some(fb) = boot_info.framebuffer.as_mut() {
-        for byte in fb.buffer_mut() {
-            *byte = 0x0F;
-        }
-    }
-
-    let x = alloc::boxed::Box::new(42);
     // println!("box: {}", x);
     
     os::db::init();
@@ -63,30 +59,12 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
         }
     }
 
-    if let Some(fb) = boot_info.framebuffer.as_mut() {
-        for byte in fb.buffer_mut() {
-            *byte = 0x0A;
-        }
-    }
-
     // println!("Entering usermode (maybe)");
     os::gdt::do_context_switch(&mut mapper, &mut frame_allocator);
-
-    if let Some(fb) = boot_info.framebuffer.as_mut() {
-        for byte in fb.buffer_mut() {
-            *byte = 0xB5;
-        }
-    }
 
     let mut exec = os::task::executor::Executor::new();
     exec.spawn(os::task::Task::new(example_task()));
     exec.spawn(os::task::Task::new(os::task::keyboard::print_keypresses()));
-
-    if let Some(fb) = boot_info.framebuffer.as_mut() {
-        for byte in fb.buffer_mut() {
-            *byte = 0xA3;
-        }
-    }
 
     exec.run();
 

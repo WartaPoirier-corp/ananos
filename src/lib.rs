@@ -25,6 +25,10 @@ pub mod serial;
 pub mod task;
 pub mod vga;
 
+lazy_static::lazy_static! {
+    pub static ref FB: spin::Mutex<Option<(u64, usize)>> = spin::Mutex::new(None);
+}
+
 pub fn init() {
     gdt::init();
     interrupt::init_idt();
