@@ -3,9 +3,7 @@
     custom_test_frameworks,
     abi_x86_interrupt,
     alloc_error_handler,
-    const_in_array_repeat_expressions,
     const_fn,
-    wake_trait,
     asm,
     const_mut_refs,
 )]

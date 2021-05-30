@@ -15,7 +15,7 @@ pub struct FixedSize {
 impl FixedSize {
     pub const fn new() -> FixedSize {
         FixedSize {
-            list_heads: [None; BLOCK_SIZES.len()],
+            list_heads: [None, None, None, None, None, None, None, None, None],
             fallback: super::Locked::new(super::linked_list::LinkedList::new()),
         }
     }

@@ -63,14 +63,14 @@ pub fn init_idt() {
 }
 
 extern "x86-interrupt" fn syscall(
-    _stack: &mut InterruptStackFrame,
+    _stack: InterruptStackFrame,
 ) {
     println!("Hello, userspace!");
     loop {}
 }
 
 extern "x86-interrupt" fn segment_not_present(
-    stack: &mut InterruptStackFrame,
+    stack: InterruptStackFrame,
     code: u64,
 ) {
     let ip = stack.instruction_pointer.as_ptr();
@@ -80,7 +80,7 @@ extern "x86-interrupt" fn segment_not_present(
     loop {}
 }
 extern "x86-interrupt" fn page_fault_handler(
-    stack: &mut InterruptStackFrame,
+    stack: InterruptStackFrame,
     error_code: PageFaultErrorCode
 ) {
     println!("PAGE FAULT");
@@ -92,7 +92,7 @@ extern "x86-interrupt" fn page_fault_handler(
 }
 
 extern "x86-interrupt" fn gp_handler(
-    stack: &mut InterruptStackFrame,
+    stack: InterruptStackFrame,
     code: u64,
 ) {
     let ip = stack.instruction_pointer.as_ptr();
@@ -108,14 +108,14 @@ extern "x86-interrupt" fn gp_handler(
 }
 
 extern "x86-interrupt" fn ss_fault_handler(
-    _stack: &mut InterruptStackFrame,
+    _stack: InterruptStackFrame,
     code: u64,
 ) {
     println!("STACK SEGMENT FAULT ({})", code);
 }
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(
-    _stack: &mut InterruptStackFrame
+    _stack: InterruptStackFrame
 ) {
     use x86_64::instructions::port::Port;
 
@@ -130,7 +130,7 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(
 }
 
 extern "x86-interrupt" fn timer_interrupt_handler(
-    _stack: &mut InterruptStackFrame,
+    _stack: InterruptStackFrame,
 ) {
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
@@ -138,7 +138,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(
 }
 
 extern "x86-interrupt" fn breakpoint_handler(
-    stack: &mut InterruptStackFrame
+    stack: InterruptStackFrame
 ) {
     // FIXME: it looks like this handler causes a page fault
     crate::serial_println!("BREAKPOINT: {:#?}", stack);
@@ -152,7 +152,7 @@ extern "x86-interrupt" fn breakpoint_handler(
 }
 
 extern "x86-interrupt" fn double_fault_handler(
-    stack: &mut InterruptStackFrame,
+    stack: InterruptStackFrame,
     error_code: u64
 ) -> ! {
     let ip = stack.instruction_pointer.as_ptr();

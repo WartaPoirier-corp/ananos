@@ -5,7 +5,7 @@ authors = ["Ana Gelez <ana@gelez.xyz>"]
 edition = "2018"
 
 [dependencies]
-bootloader = { version = "0.9.11", features = ["map_physical_memory"] }
+bootloader = { version = "0.10.1" }
 crossbeam-queue = { version = "0.2.1", default-features = false, features = ["alloc"] }
 conquer-once = { version = "0.2.1", default-features = false }
 futures-util = { version = "0.3.6", default-features = false, features = ["alloc"] }
@@ -15,7 +15,7 @@ pic8259_simple = "0.2.0"
 spin = "0.7.0"
 volatile = "0.2.6"
 uart_16550 = "0.2.10"
-x86_64 = "0.12.2"
+x86_64 = "0.14.0"
 
 [profile.dev]
 panic = "abort"
@@ -31,6 +31,10 @@ test-args = [
 ]
 test-success-exit-code = 33
 test-timeout = 300
+
+[package.metadata.bootloader]
+map-physical-memory = true
+physical-memory-offset = 0x0000_4000_0000_0000
 
 [[test]]
 name = "stack_overflow"

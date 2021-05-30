@@ -1,0 +1,12 @@
+[build]
+target = "x86_64-os.json"
+
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]
+build-std-features = ["compiler-builtins-mem"]
+
+# Use a different linker for faster compilation
+
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-Clink-arg=-fuse-ld=lld", "-Zshare-generics=y"]
