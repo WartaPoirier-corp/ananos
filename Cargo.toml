@@ -17,6 +17,9 @@ volatile = "0.2.6"
 uart_16550 = "0.2.10"
 x86_64 = "0.14.0"
 
+[workspace]
+members = ["boot"]
+
 [profile.dev]
 panic = "abort"
 
