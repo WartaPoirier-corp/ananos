@@ -47,7 +47,8 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
     };
     os::allocator::init_heap(&mut mapper, &mut frame_allocator).unwrap();
 
-    // println!("box: {}", x);
+    let x = alloc::boxed::Box::new(19);
+    println!("box: {}", x);
     
     os::db::init();
     {
@@ -55,11 +56,11 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
         if let Some(datab) = db.as_mut() {
             let handle = datab.open(os::db::Type::byte_type(), datab.find_memory_location());
             let num = datab.read(handle);
-            // println!("read from DB: {}", num[0]);
+            println!("read from DB: {}", num[0]);
         }
     }
 
-    // println!("Entering usermode (maybe)");
+    println!("Entering usermode (maybe)");
     os::gdt::do_context_switch(&mut mapper, &mut frame_allocator);
 
     let mut exec = os::task::executor::Executor::new();

@@ -74,6 +74,7 @@ extern "x86-interrupt" fn syscall(
             out("rbx") arg1,
         );
     }
+    println!("system call: {} {}", code, arg1);
     match code {
         0 => {
             let mut fb = crate::FB.lock();
@@ -125,8 +126,8 @@ extern "x86-interrupt" fn gp_handler(
     println!("Code: {:?}", inst);
     let sp = stack.stack_pointer.as_ptr();
     let st: [u64; 32] = unsafe { core::ptr::read(sp) };
-    crate::serial_println!("----------\nStack at {:p}", ip);
-    for s in st.iter() { crate::serial_println!("{:#018x} ({:#065b})", s, s); }
+    crate::println!("----------\nStack at {:p}", ip);
+    for s in st.iter() { crate::println!("{:#018x} ({:#065b})", s, s); }
     println!("GENERAL PROTECTION FAULT ({:#x} = {:#b}) at {:?}", code, code, ip);
     println!("{:#?}", stack);
     loop {}
@@ -166,14 +167,14 @@ extern "x86-interrupt" fn breakpoint_handler(
     stack: InterruptStackFrame
 ) {
     // FIXME: it looks like this handler causes a page fault
-    crate::serial_println!("BREAKPOINT: {:#?}", stack);
+    crate::println!("BREAKPOINT: {:#?}", stack);
     let ip = stack.instruction_pointer.as_ptr();
     let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
-    crate::serial_println!("-------------------\nCode: {:?}", inst);
+    crate::println!("-------------------\nCode: {:?}", inst);
     let sp = stack.stack_pointer.as_ptr();
     let st: [u64; 32] = unsafe { core::ptr::read(sp) };
-    crate::serial_println!("Stack at {:p}", ip);
-    for s in st.iter() { crate::serial_println!("{:#018x} ({:#065b})", s, s); }
+    crate::println!("Stack at {:p}", ip);
+    for s in st.iter() { crate::println!("{:#018x} ({:#065b})", s, s); }
 }
 
 extern "x86-interrupt" fn double_fault_handler(

@@ -23,7 +23,6 @@ pub mod memory;
 pub mod process;
 pub mod serial;
 pub mod task;
-pub mod vga;
 
 lazy_static::lazy_static! {
     pub static ref FB: spin::Mutex<Option<(u64, usize)>> = spin::Mutex::new(None);
@@ -37,19 +36,19 @@ pub fn init() {
 }
 
 pub fn test_runner(tests: &[&dyn Fn()]) {
-    serial_println!("Running {} tests", tests.len());
+    println!("Running {} tests", tests.len());
     for (i, test) in tests.iter().enumerate() {
-        serial_print!("Test {}/{}   ", i + 1, tests.len());
+        print!("Test {}/{}   ", i + 1, tests.len());
         test();
-        serial_println!("[OK]")
+        println!("[OK]")
     }
 
     exit_qemu(QemuExitCode::Success);
 }
 
 pub fn test_panic_handler(info: &PanicInfo) -> ! {
-    serial_println!("[FAIL]");
-    serial_println!("ERROR : {}", info);
+    println!("[FAIL]");
+    println!("ERROR : {}", info);
     exit_qemu(QemuExitCode::Failure);
     halt_loop()
 }
