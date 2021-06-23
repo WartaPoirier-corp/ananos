@@ -6,5 +6,5 @@ rustflags = ["-Clink-arg=-fuse-ld=lld", "-Zshare-generics=y"]
 
 [alias]
 kbuild = "build --target x86_64-os.json -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem"
-boot = "run --package boot"
+boot = "run --package boot-en-train"
 

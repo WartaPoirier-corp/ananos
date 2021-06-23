@@ -18,7 +18,7 @@ uart_16550 = "0.2.10"
 x86_64 = "0.14.0"
 
 [workspace]
-members = ["boot"]
+members = ["boot-en-train"]
 
 [profile.dev]
 panic = "abort"
