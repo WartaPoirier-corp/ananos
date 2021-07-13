@@ -60,14 +60,34 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
         }
     }
 
-    println!("Entering usermode (maybe)");
-    os::gdt::do_context_switch(&mut mapper, &mut frame_allocator);
+    
+    {
+        use os::task::executor::EXECUTOR;
 
-    let mut exec = os::task::executor::Executor::new();
-    exec.spawn(os::task::Task::new(example_task()));
-    exec.spawn(os::task::Task::new(os::task::keyboard::print_keypresses()));
+        let mut exec = EXECUTOR.lock();
+        exec.spawn(os::task::Task::new(example_task()));
+        exec.spawn(os::task::Task::new(os::task::keyboard::print_keypresses()));
+    }
 
-    exec.run();
+    // simple program that changes the color of the screen
+    // with a system call
+    let proc = os::process::Process::create(
+        &mut mapper,
+        &mut frame_allocator,
+        &[
+            // mov bx, 0x0
+            0x66, 0xbb, 0x00, 0x00,
+            // mov ax, 0x00
+            0x66, 0xb8, 0x00, 0x00,
+            // int 0x80 (system call)
+            0xcd, 0x80,
+            // add bx, 5
+            0x66, 0x83, 0xc3, 0x05,
+            // jmp to the start of the loop (second line)
+            0xeb, 0xf4,
+        ]
+    );
+    proc.switch();
 
     #[cfg(test)]
     test_main();

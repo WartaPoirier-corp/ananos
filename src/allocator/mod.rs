@@ -81,6 +81,10 @@ pub fn init_heap(
     Ok(())
 }
 
+pub fn is_ready() -> bool {
+    ALLOCATOR.lock().is_ready()
+}
+
 #[alloc_error_handler]
 fn alloc_error_handler(layout: Layout) -> ! {
     panic!("Allocation error: {:?}", layout)

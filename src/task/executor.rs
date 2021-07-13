@@ -2,12 +2,21 @@ use super::{Task, TaskId};
 use alloc::{collections::BTreeMap, sync::Arc, task::Wake};
 use core::task::{Waker, Poll, Context};
 use crossbeam_queue::ArrayQueue;
+use spin::Mutex;
+
+lazy_static::lazy_static! {
+    pub static ref EXECUTOR: Mutex<Executor> = Mutex::new(Executor::new());
+}
 
 pub struct Executor {
     tasks: BTreeMap<TaskId, Task>,
     task_queue: Arc<ArrayQueue<TaskId>>,
     waker_cache: BTreeMap<TaskId, Waker>,
+    currently_running: Option<TaskId>,
 }
+
+unsafe impl Send for Executor {}
+unsafe impl Sync for Executor {}
 
 impl Executor {
     pub fn new() -> Executor {
@@ -15,6 +24,7 @@ impl Executor {
             tasks: BTreeMap::new(),
             task_queue: Arc::new(ArrayQueue::new(100)),
             waker_cache: BTreeMap::new(),
+            currently_running: None,
         }
     }
 
@@ -30,7 +40,8 @@ impl Executor {
         let Self {
             tasks,
             task_queue,
-            waker_cache
+            waker_cache,
+            currently_running
         } = self;
 
         while let Ok(task_id) = task_queue.pop() {
@@ -43,6 +54,8 @@ impl Executor {
                 .entry(task_id)
                 .or_insert_with(|| TaskWaker::new(task_id, task_queue.clone()));
             let mut ctx = Context::from_waker(waker);
+            *currently_running = Some(task_id);
+            crate::println!("running task {}", task_id.0);
             match task.poll(&mut ctx) {
                 Poll::Ready(_) => {
                     tasks.remove(&task_id);
@@ -50,13 +63,24 @@ impl Executor {
                 },
                 Poll::Pending => {},
             }
+            *currently_running = None;
         }
     }
 
     pub fn run(&mut self) -> ! {
+        crate::println!("exec.run");
         loop {
+            crate::println!("loop");
             self.run_ready_tasks();
             self.sleep_if_idle();
+        }
+    }
+
+    pub fn requeue_current_task(&mut self) {
+        if let Some(current_task) = self.currently_running {
+            if let Some(waker) = self.waker_cache.get(&current_task) {
+                waker.wake_by_ref();
+            }
         }
     }
 
@@ -86,6 +110,7 @@ impl TaskWaker {
     }
 
     fn wake_task(&self) {
+        crate::println!("waking {}", self.task_id.0);
         self.task_queue.push(self.task_id).expect("TaskWaker's queue is full");
     }
 }

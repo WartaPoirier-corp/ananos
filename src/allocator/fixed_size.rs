@@ -8,6 +8,7 @@ struct Node {
 const BLOCK_SIZES: &[usize] = &[8, 16, 32, 64, 128, 256, 512, 1024, 2048];
 
 pub struct FixedSize {
+    ready: bool,
     list_heads: [Option<&'static mut Node>; BLOCK_SIZES.len()],
     fallback: super::Locked<super::linked_list::LinkedList>,
 }
@@ -15,18 +16,24 @@ pub struct FixedSize {
 impl FixedSize {
     pub const fn new() -> FixedSize {
         FixedSize {
+            ready: false,
             list_heads: [None, None, None, None, None, None, None, None, None],
             fallback: super::Locked::new(super::linked_list::LinkedList::new()),
         }
     }
 
     pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
+        self.ready = true;
         self.fallback.lock().init(heap_start, heap_size)
     }
 
     fn list_index(layout: &Layout) -> Option<usize> {
         let required_block_size = layout.size().max(layout.align());
         BLOCK_SIZES.iter().position(|&s| s >= required_block_size)
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.ready
     }
 }
 

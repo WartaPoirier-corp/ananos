@@ -40,19 +40,22 @@ lazy_static::lazy_static! {
             idt.general_protection_fault.set_handler_fn(gp_handler)
                 .set_stack_index(gdt::GENERAL_PROTECTION_FAULT_IST_INDEX);
 
-            idt.slice_mut(0x80..0x81)[0]
+            idt[0x80]
                 .set_handler_fn(syscall)
+                // TODO: give it its own stack
                 .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX)
                 .set_privilege_level(x86_64::PrivilegeLevel::Ring3);
+            // PIC interrupts
+            idt[InterruptIndex::Timer.as_usize()]
+                .set_handler_fn(timer_interrupt_handler)
+                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+            idt[InterruptIndex::Keyboard.as_usize()]
+                .set_handler_fn(keyboard_interrupt_handler)
+                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt.stack_segment_fault.set_handler_fn(ss_fault_handler);
         idt.segment_not_present.set_handler_fn(segment_not_present);
 
-        // PIC interrupts
-        idt[InterruptIndex::Timer.as_usize()]
-            .set_handler_fn(timer_interrupt_handler);
-        idt[InterruptIndex::Keyboard.as_usize()]
-            .set_handler_fn(keyboard_interrupt_handler);
 
         idt
     };
@@ -92,7 +95,10 @@ extern "x86-interrupt" fn syscall(
         },
         _ => {},
     }
-    loop {}
+    println!("done with syscall");
+    unsafe {
+        asm!("", in("rbx") arg1);
+    }
 }
 
 extern "x86-interrupt" fn segment_not_present(
@@ -151,16 +157,27 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(
     crate::task::keyboard::add_scancode(scancode);
 
     unsafe {
-        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
     }
 }
 
 extern "x86-interrupt" fn timer_interrupt_handler(
     _stack: InterruptStackFrame,
 ) {
+    println!("timer");
+    if crate::allocator::is_ready() {
+        if let Some(mut exec) = crate::task::executor::EXECUTOR.try_lock() {
+            println!("running tasks");
+            exec.run_ready_tasks();
+            println!("done");
+        }
+    }
+
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
+
+    println!("done with timer");
 }
 
 extern "x86-interrupt" fn breakpoint_handler(
