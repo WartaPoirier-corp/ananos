@@ -70,7 +70,7 @@ impl Process {
                 "mov gs, ax",
 
                 "push rax",
-                "push rbx",
+                "push rsi",
                 
                 "pushf",
                 "pop rax",
@@ -81,7 +81,7 @@ impl Process {
                 "push rdx",
                 "iretq",
                 in("rax") data_sel,
-                in("rbx") self.stack_addr,
+                in("rsi") self.stack_addr,
                 in("rcx") code_sel,
                 in("rdx") self.code_addr,
             );

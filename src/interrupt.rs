@@ -5,7 +5,7 @@ use x86_64::structures::idt::{
 use crate::println;
 use crate::gdt;
 use spin;
-use pic8259_simple::ChainedPics;
+use pic8259::ChainedPics;
 
 pub const PIC_1_OFFSET: u8 = 32;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
@@ -72,9 +72,9 @@ extern "x86-interrupt" fn syscall(
     let arg1: usize;
     unsafe {
         asm!(
-            "",
+            "mov rsi, rbx",
             out("rax") code,
-            out("rbx") arg1,
+            out("rsi") arg1,
         );
     }
     println!("system call: {} {}", code, arg1);
@@ -97,7 +97,7 @@ extern "x86-interrupt" fn syscall(
     }
     println!("done with syscall");
     unsafe {
-        asm!("", in("rbx") arg1);
+        asm!("mov rbx, rsi", in("rsi") arg1);
     }
 }
 

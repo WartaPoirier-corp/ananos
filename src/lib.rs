@@ -3,7 +3,6 @@
     custom_test_frameworks,
     abi_x86_interrupt,
     alloc_error_handler,
-    const_fn,
     asm,
     const_mut_refs,
 )]
