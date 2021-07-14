@@ -60,6 +60,9 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
         }
     }
 
+    let dt = os::cmos::get_datetime();
+    println!("Date: {}/{}/{}", dt.day, dt.month, dt.year);
+    println!("Time: {}:{}:{}", dt.hours, dt.minutes, dt.seconds);
     
     {
         use os::task::executor::EXECUTOR;
