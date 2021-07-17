@@ -54,9 +54,7 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
     {
         let mut db = os::db::DB.lock();
         if let Some(datab) = db.as_mut() {
-            let handle = datab.open(os::db::Type::byte_type(), datab.find_memory_location());
-            let num = datab.read(handle);
-            println!("read from DB: {}", num[0]);
+            os::db::display_contents(datab);
         }
     }
 

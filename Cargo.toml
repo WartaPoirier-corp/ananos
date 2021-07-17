@@ -5,6 +5,7 @@ authors = ["Ana Gelez <ana@gelez.xyz>"]
 edition = "2018"
 
 [dependencies]
+adb = { git = "https://github.com/WartaPoirier-corp/ananos-db", rev = "de8a6702392033a30a19a86ad4bde1a9c7fe539c", features = ["no_std"] }
 bootloader = { version = "0.10.1" }
 crossbeam-queue = { version = "0.2.1", default-features = false, features = ["alloc"] }
 conquer-once = { version = "0.2.1", default-features = false }

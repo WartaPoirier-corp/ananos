@@ -3,6 +3,11 @@
 version = 3
 
 [[package]]
+name = "adb"
+version = "0.1.0"
+source = "git+https://github.com/WartaPoirier-corp/ananos-db?rev=de8a6702392033a30a19a86ad4bde1a9c7fe539c#de8a6702392033a30a19a86ad4bde1a9c7fe539c"
+
+[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -134,6 +139,7 @@ checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 name = "os"
 version = "0.1.0"
 dependencies = [
+ "adb",
  "bootloader",
  "conquer-once",
  "crossbeam-queue",
