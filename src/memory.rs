@@ -1,11 +1,9 @@
-use x86_64::{
-    structures::paging::{
-        PageTable, OffsetPageTable, PhysFrame,
-        Size4KiB, FrameAllocator
-    },
-    VirtAddr, PhysAddr,
-};
-use bootloader::boot_info::{MemoryRegions, MemoryRegionKind};
+use alloc::rc::Rc;
+use core::ptr::NonNull;
+use acpi::PhysicalMapping;
+use x86_64::{PhysAddr, VirtAddr, structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame, Size4KiB, page::PageRangeInclusive, Page, Mapper}};
+use bootloader::boot_info::{MemoryRegions, MemoryRegion, MemoryRegionKind};
+use spin::Mutex;
 
 pub unsafe fn init(phys_mem_offset: VirtAddr) -> OffsetPageTable<'static> {
     let l4_table = active_page_level_4_table(phys_mem_offset);
@@ -25,13 +23,13 @@ unsafe fn active_page_level_4_table(
     &mut *page_table_ptr
 }
 
-pub struct BootInfoFrameAllocator<'a> {
-    memory_map: &'a MemoryRegions,
+pub struct BootInfoFrameAllocator {
+    memory_map: &'static mut [MemoryRegion],
     next: usize,
 }
 
-impl<'a> BootInfoFrameAllocator<'a> {
-    pub unsafe fn init(map: &'a MemoryRegions) -> BootInfoFrameAllocator<'a> {
+impl BootInfoFrameAllocator {
+    pub unsafe fn init(map: &'static mut [MemoryRegion]) -> Self {
         BootInfoFrameAllocator {
             memory_map: map,
             next: 0,
@@ -39,7 +37,7 @@ impl<'a> BootInfoFrameAllocator<'a> {
     }
 
     /// Returns an iterator over the usable frames specified in the memory map.
-    fn usable_frames(&'a self) -> impl Iterator<Item = PhysFrame> + 'a {
+    fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> + '_ {
         // get usable regions from memory map
         let regions = self.memory_map.iter();
         let usable_regions = regions
@@ -54,7 +52,7 @@ impl<'a> BootInfoFrameAllocator<'a> {
     }
 }
 
-unsafe impl<'a> FrameAllocator<Size4KiB> for BootInfoFrameAllocator<'a> {
+unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
         let frame = self.usable_frames().nth(self.next);
         self.next += 1;
@@ -62,3 +60,47 @@ unsafe impl<'a> FrameAllocator<Size4KiB> for BootInfoFrameAllocator<'a> {
     }
 }
 
+const ACPI_OFFSET: usize = 0x1000_0000_0000;
+
+#[derive(Clone)]
+pub struct AcpiHandler {
+    mapper: Rc<Mutex<OffsetPageTable<'static>>>,
+    frame_allocator: Rc<Mutex<BootInfoFrameAllocator>>,
+}
+
+impl AcpiHandler {
+    pub fn new(mapper: OffsetPageTable<'static>, frame_allocator: BootInfoFrameAllocator) -> Self {
+        Self {
+            mapper: Rc::new(Mutex::new(mapper)),
+            frame_allocator: Rc::new(Mutex::new(frame_allocator)),
+        }
+    }
+}
+
+impl acpi::AcpiHandler for AcpiHandler {
+    unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> acpi::PhysicalMapping<Self, T> {
+        let start = Page::containing_address(VirtAddr::new((ACPI_OFFSET + physical_address) as u64));
+        let end = Page::containing_address(VirtAddr::new((ACPI_OFFSET + physical_address + size) as u64));
+        let range = Page::range_inclusive(start, end);
+        let mut allocator = self.frame_allocator.lock();
+        let mut mapper = self.mapper.lock();
+        for page in range {
+            let frame = allocator
+                .allocate_frame()
+                .unwrap();
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            mapper.map_to(page, frame, flags, &mut *allocator).unwrap().flush();
+        }
+        PhysicalMapping::new(
+            physical_address,
+            NonNull::new((ACPI_OFFSET + physical_address) as *mut _).unwrap(),
+            size,
+            (end.start_address() + end.size() - start.start_address()) as usize,
+            self.clone(),
+        )
+    }
+
+    fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {
+        
+    }
+}

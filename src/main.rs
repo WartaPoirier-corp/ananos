@@ -6,7 +6,7 @@
 
 extern crate alloc;
 
-use core::panic::PanicInfo;
+use core::{ops::DerefMut, panic::PanicInfo};
 use os::println;
 
 #[cfg(not(test))]
@@ -43,7 +43,7 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
     let mut frame_allocator = unsafe {
-        memory::BootInfoFrameAllocator::init(&boot_info.memory_regions)
+        memory::BootInfoFrameAllocator::init(boot_info.memory_regions.deref_mut())
     };
     os::allocator::init_heap(&mut mapper, &mut frame_allocator).unwrap();
 
@@ -61,7 +61,7 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
     let dt = os::cmos::get_datetime();
     println!("Date: {}/{}/{}", dt.day, dt.month, dt.year);
     println!("Time: {}:{}:{}", dt.hours, dt.minutes, dt.seconds);
-    
+
     {
         use os::task::executor::EXECUTOR;
 
@@ -88,6 +88,14 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
             0xeb, 0xf4,
         ]
     );
+
+    if let bootloader::boot_info::Optional::Some(rsdp) = boot_info.rsdp_addr {
+        let acpi_tables = unsafe {
+            acpi::AcpiTables::from_rsdp(os::memory::AcpiHandler::new(mapper, frame_allocator), rsdp as usize)
+        };
+    }
+    
+
     proc.switch();
 
     #[cfg(test)]
