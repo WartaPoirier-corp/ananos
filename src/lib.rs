@@ -20,6 +20,7 @@ pub mod db;
 pub mod gdt;
 pub mod interrupt;
 pub mod memory;
+pub mod pci;
 pub mod process;
 pub mod serial;
 pub mod task;

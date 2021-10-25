@@ -91,10 +91,13 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
 
     if let bootloader::boot_info::Optional::Some(rsdp) = boot_info.rsdp_addr {
         let acpi_tables = unsafe {
-            acpi::AcpiTables::from_rsdp(os::memory::AcpiHandler::new(mapper, frame_allocator), rsdp as usize)
-        };
+            acpi::AcpiTables::from_rsdp(os::memory::AcpiHandler, rsdp as usize)
+        }.unwrap();
+
+        let pci_config_regions = acpi::mcfg::PciConfigRegions::new(&acpi_tables).unwrap();
+        let config_access = os::pci::ConfigAccess(pci_config_regions);
+        os::pci::PciResolver::get_info(config_access);
     }
-    
 
     proc.switch();
 

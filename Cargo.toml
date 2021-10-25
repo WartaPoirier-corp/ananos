@@ -13,6 +13,7 @@ conquer-once = { version = "0.2.1", default-features = false }
 futures-util = { version = "0.3.6", default-features = false, features = ["alloc"] }
 lazy_static = { version = "1.4.0", features = [ "spin_no_std" ] }
 pc-keyboard = "0.5.1"
+pci_types = "0.2"
 pic8259 = "0.10.1"
 spin = "0.7.0"
 volatile = "0.2.6"

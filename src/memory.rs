@@ -5,6 +5,8 @@ use x86_64::{PhysAddr, VirtAddr, structures::paging::{FrameAllocator, OffsetPage
 use bootloader::boot_info::{MemoryRegions, MemoryRegion, MemoryRegionKind};
 use spin::Mutex;
 
+pub const MEM_OFFSET: u64 = 0x0000_4000_0000_0000;
+
 pub unsafe fn init(phys_mem_offset: VirtAddr) -> OffsetPageTable<'static> {
     let l4_table = active_page_level_4_table(phys_mem_offset);
     OffsetPageTable::new(l4_table, phys_mem_offset)
@@ -60,43 +62,17 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     }
 }
 
-const ACPI_OFFSET: usize = 0x1000_0000_0000;
-
 #[derive(Clone)]
-pub struct AcpiHandler {
-    mapper: Rc<Mutex<OffsetPageTable<'static>>>,
-    frame_allocator: Rc<Mutex<BootInfoFrameAllocator>>,
-}
-
-impl AcpiHandler {
-    pub fn new(mapper: OffsetPageTable<'static>, frame_allocator: BootInfoFrameAllocator) -> Self {
-        Self {
-            mapper: Rc::new(Mutex::new(mapper)),
-            frame_allocator: Rc::new(Mutex::new(frame_allocator)),
-        }
-    }
-}
+pub struct AcpiHandler;
 
 impl acpi::AcpiHandler for AcpiHandler {
     unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> acpi::PhysicalMapping<Self, T> {
-        let start = Page::containing_address(VirtAddr::new((ACPI_OFFSET + physical_address) as u64));
-        let end = Page::containing_address(VirtAddr::new((ACPI_OFFSET + physical_address + size) as u64));
-        let range = Page::range_inclusive(start, end);
-        let mut allocator = self.frame_allocator.lock();
-        let mut mapper = self.mapper.lock();
-        for page in range {
-            let frame = allocator
-                .allocate_frame()
-                .unwrap();
-            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-            mapper.map_to(page, frame, flags, &mut *allocator).unwrap().flush();
-        }
         PhysicalMapping::new(
             physical_address,
-            NonNull::new((ACPI_OFFSET + physical_address) as *mut _).unwrap(),
+            NonNull::new((MEM_OFFSET + physical_address as u64) as *mut _).unwrap(),
             size,
-            (end.start_address() + end.size() - start.start_address()) as usize,
-            self.clone(),
+            size,
+            AcpiHandler,
         )
     }
 
