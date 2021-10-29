@@ -1,9 +1,7 @@
-use alloc::rc::Rc;
 use core::ptr::NonNull;
 use acpi::PhysicalMapping;
-use x86_64::{PhysAddr, VirtAddr, structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame, Size4KiB, page::PageRangeInclusive, Page, Mapper}};
-use bootloader::boot_info::{MemoryRegions, MemoryRegion, MemoryRegionKind};
-use spin::Mutex;
+use x86_64::{PhysAddr, VirtAddr, structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB}};
+use bootloader::boot_info::{MemoryRegion, MemoryRegionKind};
 
 pub const MEM_OFFSET: u64 = 0x0000_4000_0000_0000;
 

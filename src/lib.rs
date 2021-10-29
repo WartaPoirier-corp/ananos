@@ -32,7 +32,29 @@ lazy_static::lazy_static! {
 pub fn init() {
     gdt::init();
     interrupt::init_idt();
-    unsafe { interrupt::PICS.lock().initialize() };
+    unsafe {
+        let mut pics = interrupt::PICS.lock();
+        pics.initialize();
+        let [mask1, mask2] = pics.read_masks();
+        pics.write_masks(mask1 | 1, mask2);
+    };
+    x86_64::instructions::interrupts::enable();
+}
+
+// Re-enable timer interrupts when the OS is ready
+pub fn ready() {
+    // interrupts have to be disabled, because as soon
+    // as the timer interrupts will be re-enabled, the ISR
+    // will be called, and it needs to lock the PICS too
+    // to send the "end of interrupt" notification
+    // so to avoid a deadlock, we re-enable interrupts only
+    // once the lock in this function is dropped
+    x86_64::instructions::interrupts::disable();
+    unsafe {
+        let mut pics = interrupt::PICS.lock();
+        let [mask1, mask2] = pics.read_masks();
+        pics.write_masks(mask1 ^ 1, mask2);
+    }
     x86_64::instructions::interrupts::enable();
 }
 
@@ -65,7 +87,7 @@ bootloader::entry_point!(kernel_main_test);
 
 /// Entry point for `cargo xtest`
 #[cfg(test)]
-fn kernel_main_test(_boot_info: &'static bootloader::BootInfo) -> ! {
+fn kernel_main_test(_boot_info: &'static mut bootloader::BootInfo) -> ! {
     init();
     test_main();
     halt_loop()

@@ -36,8 +36,39 @@ pub struct PciDevice {
     pub bars: [Option<Bar>; 6],
 }
 
+impl PciDevice {
+    pub fn class_info(&self) -> &'static str {
+        match (self.class, self.sub_class) {
+            (0x00, _) => "Unclassified",
+            (0x01, 0x06) => "SATA controller (Mass storage controller)",
+            (0x01, _) => "Mass storage controller",
+            (0x02, 0x00) => "Ethernet controller (Network controller)",
+            (0x02, _) => "Network controller",
+            (0x03, 0x00) => "VGA-compatible controller (Display controller)",
+            (0x03, _) => "Display controller",
+            (0x04, _) => "Multimedia controller",
+            (0x05, _) => "Memory controller",
+            (0x06, _) => "Bridge",
+            (0x07, _) => "Communication controller",
+            (0x08, _) => "Generic system peripheral",
+            (0x09, _) => "Input device controller",
+            (0x0a, _) => "Docking station",
+            (0x0b, _) => "Processor",
+            (0x0c, _) => "Serial bus controller",
+            (0x0d, _) => "Wireless controller",
+            (0x0e, _) => "Intelligent controller",
+            (0x0f, _) => "Satellite communication controller",
+            (0x10, _) => "Encryption controller",
+            (0x11, _) => "Signal processing controller",
+            (0x12, _) => "Processing accelerators",
+            (0x13, _) => "Non-essential instrumentation",
+            _ => "Unknown",
+        }
+    }
+}
+
 pub struct PciInfo {
-    devices: BTreeMap<PciAddress, PciDevice>,
+    pub devices: BTreeMap<PciAddress, PciDevice>,
 }
 
 pub struct PciResolver<A> where A: ConfigRegionAccess {
@@ -89,11 +120,6 @@ impl<A> PciResolver<A> where A: ConfigRegionAccess {
             if vendor_id == 0xffff {
                 return;
             }
-
-            crate::println!(
-                "Found PCI device (bus={}, device={}, function={}): (vendor = {:#x}, device = {:#x})",
-                bus, device, function, vendor_id, device_id
-            );
 
             match header.header_type(&self.access) {
                 pci_types::HEADER_TYPE_ENDPOINT => {

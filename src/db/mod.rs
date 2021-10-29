@@ -1,38 +1,61 @@
 use alloc::vec::Vec;
-use adb::{Db, DbObject, DbValue};
+use alloc::sync::Arc;
+use adb::{Db, DbValue, TypeInfo};
 use crate::{print, println};
 
 pub static DB: spin::Mutex<Option<Db<Vec<u8>>>> = spin::Mutex::new(None);
 
+fn db_logger(args: core::fmt::Arguments) {
+    crate::println!("{}", args);
+}
+
 pub fn init() {
     let mut db = DB.lock();
-    *db = Some(
-        Db::read_from(Vec::from(*include_bytes!("../../test.adb"))).unwrap()
-    );
+    *db = Some({
+        let mut datab = Db::read_from(Vec::from(*include_bytes!("../../test.adb"))).unwrap();
+        datab.set_logger(db_logger);
+        datab
+    });
 }
 
 pub fn display_contents(db: &mut Db<Vec<u8>>) {
     for ty in db.all_type_ids() {
-        println!("TYPE {}", ty.0);
-        for item in db.iter_type(ty) {
-            show_db_object(&item, 0);
+        let items: Vec<_> = db.iter_type(ty).collect();
+        for item in items {
+            show_db_object(&db, item.value, item.type_info, 0);
         }
     }
 }
 
-fn show_db_object(obj: &DbObject, padding: usize) {
+fn show_db_object(db: &Db<Vec<u8>>, value: Arc<DbValue>, ty: Arc<TypeInfo>, padding: usize) {
     for _ in 0..padding {
         print!("    ");
     }
 
-    match *obj.value {
+    match *value {
         DbValue::Unit => println!("()"),
+        DbValue::U8(x) => println!("{}", x),
         DbValue::U64(x) => println!("{}", x),
         DbValue::F64(x) => println!("{}", x),
         DbValue::Array(ref arr) => {
             println!("[");
+            let mut str = alloc::vec::Vec::with_capacity(arr.len());
             for item in arr {
-                show_db_object(item, padding + 1)
+                let arr_ty = match ty.definition {
+                    adb::TypeDef::Array(id) => db.get_type_info(id).unwrap(),
+                    _ => unreachable!(),
+                };
+                if arr_ty.id == adb::type_ids::U8 {
+                    str.push(match item.as_ref() {
+                        adb::DbValue::U8(b) => *b,
+                        _ => unreachable!(),
+                    })
+                } else {
+                    show_db_object(db, Arc::clone(item), arr_ty, padding + 1)
+                }
+            }
+            if !str.is_empty() {
+                println!("\"{}\"", alloc::string::String::from_utf8(str).unwrap_or_default());
             }
             for _ in 0..padding {
                 print!("    ");
@@ -41,12 +64,21 @@ fn show_db_object(obj: &DbObject, padding: usize) {
         },
         DbValue::Sum { ref variant, ref data } => {
             print!("{} : ", variant);
-            show_db_object(data, padding + 1);
+            let var_ty = match ty.definition {
+                adb::TypeDef::Sum { ref variants } => db.get_type_info(variants[*variant as usize].1).unwrap(),
+                _ => unreachable!(),
+            };
+            show_db_object(db, Arc::clone(data), var_ty, padding + 1);
         },
         DbValue::Product { ref fields } => {
             println!("{{");
-            for f in fields {
-                show_db_object(f, padding + 1);
+            let fields_ty: Vec<_> = match ty.definition {
+                adb::TypeDef::Product { ref fields } => fields.iter().map(|x| x.1).collect(),
+                _ => unreachable!()
+            };
+            for (f, f_ty) in fields.iter().zip(fields_ty.iter()) {
+                let f_ty = db.get_type_info(*f_ty).unwrap();
+                show_db_object(db, Arc::clone(f), f_ty, padding + 1);
             }
             for _ in 0..padding {
                 print!("    ");

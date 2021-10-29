@@ -7,6 +7,8 @@
 extern crate alloc;
 
 use core::{ops::DerefMut, panic::PanicInfo};
+use alloc::sync::Arc;
+use alloc::string::ToString;
 use os::println;
 
 #[cfg(not(test))]
@@ -72,22 +74,14 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
 
     // simple program that changes the color of the screen
     // with a system call
+    // it also opens a stream of PCI devices and calls the debugger
+    // to print info about its state
     let proc = os::process::Process::create(
         &mut mapper,
         &mut frame_allocator,
-        &[
-            // mov bx, 0x0
-            0x66, 0xbb, 0x00, 0x00,
-            // mov ax, 0x00
-            0x66, 0xb8, 0x00, 0x00,
-            // int 0x80 (system call)
-            0xcd, 0x80,
-            // add bx, 5
-            0x66, 0x83, 0xc3, 0x05,
-            // jmp to the start of the loop (second line)
-            0xeb, 0xf4,
-        ]
+        include_bytes!("../test.bin"),
     );
+    os::process::spawn(proc).unwrap();
 
     if let bootloader::boot_info::Optional::Some(rsdp) = boot_info.rsdp_addr {
         let acpi_tables = unsafe {
@@ -96,10 +90,44 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
 
         let pci_config_regions = acpi::mcfg::PciConfigRegions::new(&acpi_tables).unwrap();
         let config_access = os::pci::ConfigAccess(pci_config_regions);
-        os::pci::PciResolver::get_info(config_access);
+
+        let pci_type = Arc::new(adb::TypeInfo {
+            name: "Os.Pci.Device".to_string(),
+            id: adb::TypeId(0xC1),
+            definition: adb::TypeDef::Product {
+                fields: alloc::vec![
+                    ("vendor".to_string(), adb::type_ids::TYPE_ID),
+                    ("device".to_string(), adb::type_ids::TYPE_ID),
+                    ("class".to_string(), adb::type_ids::TYPE_ID),
+                    ("subclass".to_string(), adb::type_ids::TYPE_ID),
+                ]
+            }
+        });
+
+        let mut db = os::db::DB.lock();
+        for (_address, device) in os::pci::PciResolver::get_info(config_access).devices {
+            println!("PCI device: {:04x?}:{:04x?}, 0x{:02x?}/0x{:02x?} ({})", device.vendor_id, device.device_id, device.class, device.sub_class, device.class_info());
+            if let Some(datab) = db.as_mut() {
+                datab.write_object(adb::DbObject {
+                    type_info: alloc::sync::Arc::clone(&pci_type),
+                    value: Arc::new(adb::DbValue::Product {
+                        fields: alloc::vec![
+                            Arc::new(adb::DbValue::U64(device.vendor_id as u64)),
+                            Arc::new(adb::DbValue::U64(device.device_id as u64)),
+                            Arc::new(adb::DbValue::U64(device.class as u64)),
+                            Arc::new(adb::DbValue::U64(device.sub_class as u64)),
+                        ]
+                    })
+                }).unwrap();
+            }
+        }
+        
+        if let Some(db) = db.as_mut() {
+            os::db::display_contents(db);
+        }
     }
 
-    proc.switch();
+    os::ready();
 
     #[cfg(test)]
     test_main();

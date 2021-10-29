@@ -31,8 +31,18 @@ macro_rules! print {
 /// Prints to the host through the serial interface, appending a newline.
 #[macro_export]
 macro_rules! println {
-    () => ($crate::serial_print!("\n"));
+    () => ($crate::print!("\n"));
     ($fmt:expr) => ($crate::print!(concat!($fmt, "\n")));
     ($fmt:expr, $($arg:tt)*) => ($crate::print!(
         concat!($fmt, "\n"), $($arg)*));
+}
+
+#[macro_export]
+macro_rules! dbg {
+    ($($t:tt)*) => {
+        {
+            $crate::println!("{} = {:#b}", stringify!($($t)*), $($t)*);
+            $($t)*
+        }
+    };
 }

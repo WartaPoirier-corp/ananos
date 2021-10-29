@@ -2,6 +2,8 @@
 
 set -e
 
+clang -target x86_64-none-none -c -o test.o test.s
+objcopy -I elf64-little -j .text -O binary test.o test.bin
 cargo kbuild
 cargo boot
 qemu-system-x86_64 -machine q35 -device isa-debug-exit,iobase=0xf4,iosize=0x04 \

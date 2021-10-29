@@ -6,7 +6,8 @@ edition = "2018"
 
 [dependencies]
 acpi = "3.0.0"
-adb = { git = "https://github.com/WartaPoirier-corp/ananos-db", rev = "de8a6702392033a30a19a86ad4bde1a9c7fe539c", features = ["no_std"] }
+# adb = { path = "../ananos-db/adb", features = ["no_std"] }
+adb = { git = "https://github.com/WartaPoirier-corp/ananos-db", rev = "f6feb44ea65585178adc14184cc1541a3f2c5921", features = ["no_std"] }
 bootloader = { version = "0.10.1" }
 crossbeam-queue = { version = "0.2.1", default-features = false, features = ["alloc"] }
 conquer-once = { version = "0.2.1", default-features = false }

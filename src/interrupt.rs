@@ -4,6 +4,7 @@ use x86_64::structures::idt::{
 };
 use crate::println;
 use crate::gdt;
+use crate::process;
 use spin;
 use pic8259::ChainedPics;
 
@@ -31,8 +32,10 @@ impl InterruptIndex {
 lazy_static::lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
-        idt.breakpoint.set_handler_fn(breakpoint_handler);
         unsafe {
+            idt.breakpoint.set_handler_fn(breakpoint_handler)
+                .set_privilege_level(x86_64::PrivilegeLevel::Ring3)
+                .set_stack_index(gdt::GENERAL_PROTECTION_FAULT_IST_INDEX);
             idt.double_fault.set_handler_fn(double_fault_handler)
                 .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
             idt.page_fault.set_handler_fn(page_fault_handler)
@@ -68,15 +71,25 @@ pub fn init_idt() {
 extern "x86-interrupt" fn syscall(
     _stack: InterruptStackFrame,
 ) {
-    let code: usize;
-    let arg1: usize;
+    let rax: usize;
+    let rbx: usize;
+    let rcx: usize;
+    let rdx: usize;
+    let rsi: usize;
+    let rdi: usize;
     unsafe {
         asm!(
-            "mov rsi, rbx",
-            out("rax") code,
-            out("rsi") arg1,
+            "nop",
+            out("rax") rax,
+            out("rcx") rcx,
+            out("rdx") rdx,
+            out("rsi") rsi,
+            out("rdi") rdi,
         );
+        asm!("mov rsi, rbx", out("rsi") rbx)
     }
+    let code = rax;
+    let arg1 = rbx;
     println!("system call: {} {}", code, arg1);
     match code {
         0 => {
@@ -93,11 +106,25 @@ extern "x86-interrupt" fn syscall(
                 }
             }
         },
+        1 => {
+            let proc = process::get_mut(process::current().unwrap()).unwrap();
+            let mut db = crate::db::DB.try_lock().unwrap();
+            let mut db = (*db).as_mut().unwrap();
+            proc.open_stream(&mut db, adb::TypeId(arg1 as u64))
+        }
         _ => {},
     }
     println!("done with syscall");
     unsafe {
-        asm!("mov rbx, rsi", in("rsi") arg1);
+        asm!("mov rbx, rsi", in("rsi") rbx);
+        asm!(
+            "nop",
+            in("rax") rax,
+            in("rcx") rcx,
+            in("rdx") rdx,
+            in("rsi") rsi,
+            in("rdi") rdi,
+        )
     }
 }
 
@@ -164,26 +191,29 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(
 extern "x86-interrupt" fn timer_interrupt_handler(
     _stack: InterruptStackFrame,
 ) {
-    println!("timer");
     if crate::allocator::is_ready() {
         if let Some(mut exec) = crate::task::executor::EXECUTOR.try_lock() {
-            println!("running tasks");
             exec.run_ready_tasks();
-            println!("done");
         }
+
     }
 
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
 
-    println!("done with timer");
+    // start PID 0 if needed
+    if crate::process::current().is_none() {
+        let pid0 = crate::process::PId::new(0);
+        if crate::process::get_mut(pid0).is_some() {
+            crate::process::switch_to(pid0)
+        }
+    }
 }
 
 extern "x86-interrupt" fn breakpoint_handler(
     stack: InterruptStackFrame
 ) {
-    // FIXME: it looks like this handler causes a page fault
     crate::println!("BREAKPOINT: {:#?}", stack);
     let ip = stack.instruction_pointer.as_ptr();
     let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
@@ -192,6 +222,14 @@ extern "x86-interrupt" fn breakpoint_handler(
     let st: [u64; 32] = unsafe { core::ptr::read(sp) };
     crate::println!("Stack at {:p}", ip);
     for s in st.iter() { crate::println!("{:#018x} ({:#065b})", s, s); }
+    if let Some(pid) = crate::process::current() {
+        if let Some(proc) = crate::process::get_mut(pid) {
+            crate::println!("--------------\nCurrent process: {:?}", pid);
+            for (i, stream) in proc.streams.iter().enumerate() {
+                crate::println!("  - Stream {} of {}", i, stream.ty().0);
+            }
+        }
+    }
 }
 
 extern "x86-interrupt" fn double_fault_handler(

@@ -16,7 +16,7 @@ dependencies = [
 [[package]]
 name = "adb"
 version = "0.1.0"
-source = "git+https://github.com/WartaPoirier-corp/ananos-db?rev=de8a6702392033a30a19a86ad4bde1a9c7fe539c#de8a6702392033a30a19a86ad4bde1a9c7fe539c"
+source = "git+https://github.com/WartaPoirier-corp/ananos-db?rev=f6feb44ea65585178adc14184cc1541a3f2c5921#f6feb44ea65585178adc14184cc1541a3f2c5921"
 
 [[package]]
 name = "autocfg"
