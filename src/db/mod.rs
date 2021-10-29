@@ -1,7 +1,7 @@
-use alloc::vec::Vec;
-use alloc::sync::Arc;
-use adb::{Db, DbValue, TypeInfo};
 use crate::{print, println};
+use adb::{Db, DbValue, TypeInfo};
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 
 pub static DB: spin::Mutex<Option<Db<Vec<u8>>>> = spin::Mutex::new(None);
 
@@ -55,26 +55,34 @@ fn show_db_object(db: &Db<Vec<u8>>, value: Arc<DbValue>, ty: Arc<TypeInfo>, padd
                 }
             }
             if !str.is_empty() {
-                println!("\"{}\"", alloc::string::String::from_utf8(str).unwrap_or_default());
+                println!(
+                    "\"{}\"",
+                    alloc::string::String::from_utf8(str).unwrap_or_default()
+                );
             }
             for _ in 0..padding {
                 print!("    ");
             }
             println!("]")
-        },
-        DbValue::Sum { ref variant, ref data } => {
+        }
+        DbValue::Sum {
+            ref variant,
+            ref data,
+        } => {
             print!("{} : ", variant);
             let var_ty = match ty.definition {
-                adb::TypeDef::Sum { ref variants } => db.get_type_info(variants[*variant as usize].1).unwrap(),
+                adb::TypeDef::Sum { ref variants } => {
+                    db.get_type_info(variants[*variant as usize].1).unwrap()
+                }
                 _ => unreachable!(),
             };
             show_db_object(db, Arc::clone(data), var_ty, padding + 1);
-        },
+        }
         DbValue::Product { ref fields } => {
             println!("{{");
             let fields_ty: Vec<_> = match ty.definition {
                 adb::TypeDef::Product { ref fields } => fields.iter().map(|x| x.1).collect(),
-                _ => unreachable!()
+                _ => unreachable!(),
             };
             for (f, f_ty) in fields.iter().zip(fields_ty.iter()) {
                 let f_ty = db.get_type_info(*f_ty).unwrap();
@@ -84,7 +92,6 @@ fn show_db_object(db: &Db<Vec<u8>>, value: Arc<DbValue>, ty: Arc<TypeInfo>, padd
                 print!("    ");
             }
             println!("}}");
-        },
+        }
     }
 }
-

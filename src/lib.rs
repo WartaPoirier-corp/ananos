@@ -4,7 +4,7 @@
     abi_x86_interrupt,
     alloc_error_handler,
     asm,
-    const_mut_refs,
+    const_mut_refs
 )]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]

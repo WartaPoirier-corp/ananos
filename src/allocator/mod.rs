@@ -34,9 +34,10 @@ pub struct Locked<T> {
 
 impl<T> Locked<T> {
     pub const fn new(data: T) -> Self {
-        Locked { mutex: spin::Mutex::new(data) }
+        Locked {
+            mutex: spin::Mutex::new(data),
+        }
     }
-
 
     pub fn lock(&self) -> spin::MutexGuard<T> {
         self.mutex.lock()
@@ -69,9 +70,7 @@ pub fn init_heap(
             .allocate_frame()
             .ok_or(MapToError::FrameAllocationFailed)?;
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-        unsafe {
-            mapper.map_to(page, frame, flags, frame_alloc)?.flush()
-        };
+        unsafe { mapper.map_to(page, frame, flags, frame_alloc)?.flush() };
     }
 
     unsafe {

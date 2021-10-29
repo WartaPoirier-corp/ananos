@@ -1,6 +1,6 @@
 use super::{Task, TaskId};
 use alloc::{collections::BTreeMap, sync::Arc, task::Wake};
-use core::task::{Waker, Poll, Context};
+use core::task::{Context, Poll, Waker};
 use crossbeam_queue::ArrayQueue;
 use spin::Mutex;
 
@@ -41,7 +41,7 @@ impl Executor {
             tasks,
             task_queue,
             waker_cache,
-            currently_running
+            currently_running,
         } = self;
 
         while let Ok(task_id) = task_queue.pop() {
@@ -60,8 +60,8 @@ impl Executor {
                 Poll::Ready(_) => {
                     tasks.remove(&task_id);
                     waker_cache.remove(&task_id);
-                },
-                Poll::Pending => {},
+                }
+                Poll::Pending => {}
             }
             *currently_running = None;
         }
@@ -111,7 +111,9 @@ impl TaskWaker {
 
     fn wake_task(&self) {
         crate::println!("waking {}", self.task_id.0);
-        self.task_queue.push(self.task_id).expect("TaskWaker's queue is full");
+        self.task_queue
+            .push(self.task_id)
+            .expect("TaskWaker's queue is full");
     }
 }
 

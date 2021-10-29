@@ -6,9 +6,9 @@
 
 extern crate alloc;
 
-use core::{ops::DerefMut, panic::PanicInfo};
-use alloc::sync::Arc;
 use alloc::string::ToString;
+use alloc::sync::Arc;
+use core::{ops::DerefMut, panic::PanicInfo};
 use os::println;
 
 #[cfg(not(test))]
@@ -27,8 +27,8 @@ fn panic_handler(info: &PanicInfo) -> ! {
 bootloader::entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
-    use x86_64::VirtAddr;
     use os::memory;
+    use x86_64::VirtAddr;
 
     if let bootloader::boot_info::Optional::Some(ref fb) = boot_info.framebuffer {
         let fb = fb.buffer();
@@ -44,14 +44,13 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    let mut frame_allocator = unsafe {
-        memory::BootInfoFrameAllocator::init(boot_info.memory_regions.deref_mut())
-    };
+    let mut frame_allocator =
+        unsafe { memory::BootInfoFrameAllocator::init(boot_info.memory_regions.deref_mut()) };
     os::allocator::init_heap(&mut mapper, &mut frame_allocator).unwrap();
 
     let x = alloc::boxed::Box::new(19);
     println!("box: {}", x);
-    
+
     os::db::init();
     {
         let mut db = os::db::DB.lock();
@@ -84,9 +83,8 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
     os::process::spawn(proc).unwrap();
 
     if let bootloader::boot_info::Optional::Some(rsdp) = boot_info.rsdp_addr {
-        let acpi_tables = unsafe {
-            acpi::AcpiTables::from_rsdp(os::memory::AcpiHandler, rsdp as usize)
-        }.unwrap();
+        let acpi_tables =
+            unsafe { acpi::AcpiTables::from_rsdp(os::memory::AcpiHandler, rsdp as usize) }.unwrap();
 
         let pci_config_regions = acpi::mcfg::PciConfigRegions::new(&acpi_tables).unwrap();
         let config_access = os::pci::ConfigAccess(pci_config_regions);
@@ -100,28 +98,37 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
                     ("device".to_string(), adb::type_ids::TYPE_ID),
                     ("class".to_string(), adb::type_ids::TYPE_ID),
                     ("subclass".to_string(), adb::type_ids::TYPE_ID),
-                ]
-            }
+                ],
+            },
         });
 
         let mut db = os::db::DB.lock();
         for (_address, device) in os::pci::PciResolver::get_info(config_access).devices {
-            println!("PCI device: {:04x?}:{:04x?}, 0x{:02x?}/0x{:02x?} ({})", device.vendor_id, device.device_id, device.class, device.sub_class, device.class_info());
+            println!(
+                "PCI device: {:04x?}:{:04x?}, 0x{:02x?}/0x{:02x?} ({})",
+                device.vendor_id,
+                device.device_id,
+                device.class,
+                device.sub_class,
+                device.class_info()
+            );
             if let Some(datab) = db.as_mut() {
-                datab.write_object(adb::DbObject {
-                    type_info: alloc::sync::Arc::clone(&pci_type),
-                    value: Arc::new(adb::DbValue::Product {
-                        fields: alloc::vec![
-                            Arc::new(adb::DbValue::U64(device.vendor_id as u64)),
-                            Arc::new(adb::DbValue::U64(device.device_id as u64)),
-                            Arc::new(adb::DbValue::U64(device.class as u64)),
-                            Arc::new(adb::DbValue::U64(device.sub_class as u64)),
-                        ]
+                datab
+                    .write_object(adb::DbObject {
+                        type_info: alloc::sync::Arc::clone(&pci_type),
+                        value: Arc::new(adb::DbValue::Product {
+                            fields: alloc::vec![
+                                Arc::new(adb::DbValue::U64(device.vendor_id as u64)),
+                                Arc::new(adb::DbValue::U64(device.device_id as u64)),
+                                Arc::new(adb::DbValue::U64(device.class as u64)),
+                                Arc::new(adb::DbValue::U64(device.sub_class as u64)),
+                            ],
+                        }),
                     })
-                }).unwrap();
+                    .unwrap();
             }
         }
-        
+
         if let Some(db) = db.as_mut() {
             os::db::display_contents(db);
         }

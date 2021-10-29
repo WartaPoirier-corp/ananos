@@ -1,6 +1,10 @@
-use core::{future::Future, pin::Pin, task::{Context, Poll}};
-use core::sync::atomic::{AtomicU64, Ordering};
 use alloc::boxed::Box;
+use core::sync::atomic::{AtomicU64, Ordering};
+use core::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 pub mod executor;
 pub mod keyboard;

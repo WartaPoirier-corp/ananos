@@ -4,8 +4,8 @@
 
 use core::panic::PanicInfo;
 use lazy_static::lazy_static;
+use os::{exit_qemu, serial_print, serial_println, QemuExitCode};
 use x86_64::structures::idt::InterruptDescriptorTable;
-use os::{exit_qemu, QemuExitCode, serial_println, serial_print};
 use x86_64::structures::idt::InterruptStackFrame;
 
 lazy_static! {

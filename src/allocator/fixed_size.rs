@@ -47,7 +47,7 @@ unsafe impl GlobalAlloc for super::Locked<FixedSize> {
                 Some(node) => {
                     allocator.list_heads[list_index] = node.next.take();
                     node as *mut Node as *mut u8
-                },
+                }
                 None => {
                     let block_size = BLOCK_SIZES[list_index];
                     let block_align = block_size;

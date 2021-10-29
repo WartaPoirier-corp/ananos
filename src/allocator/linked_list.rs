@@ -1,13 +1,13 @@
 use super::align_up;
-use core::mem;
 use alloc::alloc::{GlobalAlloc, Layout};
+use core::mem;
 use core::ptr;
 
 /// A node of a linked list, that corresponds to a free
 /// heap area in the context of this allocator.
 struct Node {
     size: usize,
-    next: Option<&'static mut Node>
+    next: Option<&'static mut Node>,
 }
 
 impl Node {
@@ -17,7 +17,7 @@ impl Node {
     /// is not automatically added to the list of free areas,
     /// it is just a constructor function.
     const fn new(size: usize) -> Node {
-        Node { next: None, size } 
+        Node { next: None, size }
     }
 
     fn start_addr(&self) -> usize {
@@ -36,9 +36,7 @@ pub struct LinkedList {
 
 impl LinkedList {
     pub const fn new() -> LinkedList {
-        LinkedList {
-            head: Node::new(0),
-        }
+        LinkedList { head: Node::new(0) }
     }
 
     /// Initializes the allocator with a memory region on which it has the right to work.
@@ -103,12 +101,11 @@ impl LinkedList {
     }
 }
 
-
 unsafe impl GlobalAlloc for super::Locked<LinkedList> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let (size, align) = LinkedList::size_align(layout);
         let mut allocator = self.lock();
-        
+
         if let Some((reg, alloc_start)) = allocator.find_region(size, align) {
             let alloc_end = match alloc_start.checked_add(size) {
                 Some(x) => x,

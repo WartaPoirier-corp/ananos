@@ -1,16 +1,20 @@
-use bootloader_locator::locate_bootloader; 
+use bootloader_locator::locate_bootloader;
 use std::path::Path;
 use std::process::Command;
 
 fn main() {
     let bootloader_manifest = locate_bootloader("bootloader").unwrap();
-    
-    let kernel_binary = Path::new("target/x86_64-os/debug/os").canonicalize().unwrap();
+
+    let kernel_binary = Path::new("target/x86_64-os/debug/os")
+        .canonicalize()
+        .unwrap();
     let kernel_manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent().unwrap()
+        .parent()
+        .unwrap()
         .join("Cargo.toml");
     let target_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent().unwrap()
+        .parent()
+        .unwrap()
         .join("target");
     let out_dir = kernel_binary.parent().unwrap();
 

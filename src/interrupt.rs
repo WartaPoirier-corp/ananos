@@ -1,16 +1,14 @@
-use x86_64::structures::idt::{
-    InterruptDescriptorTable, InterruptStackFrame,
-    PageFaultErrorCode
-};
-use crate::println;
 use crate::gdt;
+use crate::println;
 use crate::process;
-use spin;
 use pic8259::ChainedPics;
+use spin;
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
 pub const PIC_1_OFFSET: u8 = 32;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
-pub static PICS: spin::Mutex<ChainedPics> = spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
+pub static PICS: spin::Mutex<ChainedPics> =
+    spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
@@ -68,9 +66,7 @@ pub fn init_idt() {
     IDT.load();
 }
 
-extern "x86-interrupt" fn syscall(
-    _stack: InterruptStackFrame,
-) {
+extern "x86-interrupt" fn syscall(_stack: InterruptStackFrame) {
     let rax: usize;
     let rbx: usize;
     let rcx: usize;
@@ -95,24 +91,19 @@ extern "x86-interrupt" fn syscall(
         0 => {
             let mut fb = crate::FB.lock();
             if let Some(ref mut fb) = *fb {
-                let buff = unsafe {
-                    core::slice::from_raw_parts_mut(
-                        fb.0 as *mut u8,
-                        fb.1
-                    )
-                }; 
+                let buff = unsafe { core::slice::from_raw_parts_mut(fb.0 as *mut u8, fb.1) };
                 for byte in buff {
                     *byte = arg1 as u8;
                 }
             }
-        },
+        }
         1 => {
             let proc = process::get_mut(process::current().unwrap()).unwrap();
             let mut db = crate::db::DB.try_lock().unwrap();
             let mut db = (*db).as_mut().unwrap();
             proc.open_stream(&mut db, adb::TypeId(arg1 as u64))
         }
-        _ => {},
+        _ => {}
     }
     println!("done with syscall");
     unsafe {
@@ -128,10 +119,7 @@ extern "x86-interrupt" fn syscall(
     }
 }
 
-extern "x86-interrupt" fn segment_not_present(
-    stack: InterruptStackFrame,
-    code: u64,
-) {
+extern "x86-interrupt" fn segment_not_present(stack: InterruptStackFrame, code: u64) {
     let ip = stack.instruction_pointer.as_ptr();
     let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
     println!("Code: {:?}", inst);
@@ -140,7 +128,7 @@ extern "x86-interrupt" fn segment_not_present(
 }
 extern "x86-interrupt" fn page_fault_handler(
     stack: InterruptStackFrame,
-    error_code: PageFaultErrorCode
+    error_code: PageFaultErrorCode,
 ) {
     println!("PAGE FAULT");
     let ip = stack.instruction_pointer.as_ptr();
@@ -150,56 +138,51 @@ extern "x86-interrupt" fn page_fault_handler(
     loop {}
 }
 
-extern "x86-interrupt" fn gp_handler(
-    stack: InterruptStackFrame,
-    code: u64,
-) {
+extern "x86-interrupt" fn gp_handler(stack: InterruptStackFrame, code: u64) {
     let ip = stack.instruction_pointer.as_ptr();
     let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
     println!("Code: {:?}", inst);
     let sp = stack.stack_pointer.as_ptr();
     let st: [u64; 32] = unsafe { core::ptr::read(sp) };
     crate::println!("----------\nStack at {:p}", ip);
-    for s in st.iter() { crate::println!("{:#018x} ({:#065b})", s, s); }
-    println!("GENERAL PROTECTION FAULT ({:#x} = {:#b}) at {:?}", code, code, ip);
+    for s in st.iter() {
+        crate::println!("{:#018x} ({:#065b})", s, s);
+    }
+    println!(
+        "GENERAL PROTECTION FAULT ({:#x} = {:#b}) at {:?}",
+        code, code, ip
+    );
     println!("{:#?}", stack);
     loop {}
 }
 
-extern "x86-interrupt" fn ss_fault_handler(
-    _stack: InterruptStackFrame,
-    code: u64,
-) {
+extern "x86-interrupt" fn ss_fault_handler(_stack: InterruptStackFrame, code: u64) {
     println!("STACK SEGMENT FAULT ({})", code);
 }
 
-extern "x86-interrupt" fn keyboard_interrupt_handler(
-    _stack: InterruptStackFrame
-) {
+extern "x86-interrupt" fn keyboard_interrupt_handler(_stack: InterruptStackFrame) {
     use x86_64::instructions::port::Port;
-
 
     let mut port = Port::new(0x60); // Keyboard I/O port
     let scancode: u8 = unsafe { port.read() };
     crate::task::keyboard::add_scancode(scancode);
 
     unsafe {
-        PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
+        PICS.lock()
+            .notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
     }
 }
 
-extern "x86-interrupt" fn timer_interrupt_handler(
-    _stack: InterruptStackFrame,
-) {
+extern "x86-interrupt" fn timer_interrupt_handler(_stack: InterruptStackFrame) {
     if crate::allocator::is_ready() {
         if let Some(mut exec) = crate::task::executor::EXECUTOR.try_lock() {
             exec.run_ready_tasks();
         }
-
     }
 
     unsafe {
-        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        PICS.lock()
+            .notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
 
     // start PID 0 if needed
@@ -211,9 +194,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(
     }
 }
 
-extern "x86-interrupt" fn breakpoint_handler(
-    stack: InterruptStackFrame
-) {
+extern "x86-interrupt" fn breakpoint_handler(stack: InterruptStackFrame) {
     crate::println!("BREAKPOINT: {:#?}", stack);
     let ip = stack.instruction_pointer.as_ptr();
     let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
@@ -221,7 +202,9 @@ extern "x86-interrupt" fn breakpoint_handler(
     let sp = stack.stack_pointer.as_ptr();
     let st: [u64; 32] = unsafe { core::ptr::read(sp) };
     crate::println!("Stack at {:p}", ip);
-    for s in st.iter() { crate::println!("{:#018x} ({:#065b})", s, s); }
+    for s in st.iter() {
+        crate::println!("{:#018x} ({:#065b})", s, s);
+    }
     if let Some(pid) = crate::process::current() {
         if let Some(proc) = crate::process::get_mut(pid) {
             crate::println!("--------------\nCurrent process: {:?}", pid);
@@ -232,10 +215,7 @@ extern "x86-interrupt" fn breakpoint_handler(
     }
 }
 
-extern "x86-interrupt" fn double_fault_handler(
-    stack: InterruptStackFrame,
-    error_code: u64
-) -> ! {
+extern "x86-interrupt" fn double_fault_handler(stack: InterruptStackFrame, error_code: u64) -> ! {
     let ip = stack.instruction_pointer.as_ptr();
     let ip: [u8; 8] = unsafe { core::ptr::read(ip) };
     println!("Code: {:?}", ip);
@@ -249,4 +229,3 @@ mod tests {
         x86_64::instructions::interrupts::int3();
     }
 }
-

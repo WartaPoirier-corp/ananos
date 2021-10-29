@@ -1,14 +1,12 @@
+use crate::gdt::GDT;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use x86_64::VirtAddr;
-use x86_64::instructions::interrupts;
-use x86_64::structures::paging::{
-    Page, PageTableFlags,
-};
-use x86_64::structures::paging::{Mapper, FrameAllocator, Size4KiB};
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
-use crate::gdt::GDT;
+use x86_64::instructions::interrupts;
+use x86_64::structures::paging::{FrameAllocator, Mapper, Size4KiB};
+use x86_64::structures::paging::{Page, PageTableFlags};
+use x86_64::VirtAddr;
 
 // TODO: use virtual memory better, i.e don't map all
 // processes in the same page table directory
@@ -29,7 +27,9 @@ lazy_static::lazy_static! {
 pub struct PId(usize);
 
 impl PId {
-    pub fn new(id: usize) -> Self { Self(id) }
+    pub fn new(id: usize) -> Self {
+        Self(id)
+    }
 }
 
 pub fn current() -> Option<PId> {
@@ -100,22 +100,29 @@ impl<'a> Process<'a> {
     pub fn create(
         mapper: &mut impl Mapper<Size4KiB>,
         frame_alloc: &mut impl FrameAllocator<Size4KiB>,
-        asm: &[u8]
+        asm: &[u8],
     ) -> Process<'a> {
-        const PAGE_SIZE: u64 = 1024 * 4; 
+        const PAGE_SIZE: u64 = 1024 * 4;
         let frame = frame_alloc.allocate_frame().unwrap();
         let stack = STACK_ADDR.fetch_add(PAGE_SIZE, Ordering::SeqCst);
         let page = Page::containing_address(VirtAddr::new(stack));
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
+        let flags =
+            PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
         unsafe {
-            mapper.map_to(page, frame, flags, frame_alloc).unwrap().flush();
+            mapper
+                .map_to(page, frame, flags, frame_alloc)
+                .unwrap()
+                .flush();
         }
 
         let frame = frame_alloc.allocate_frame().unwrap();
         let code = CODE_ADDR.fetch_add(PAGE_SIZE, Ordering::SeqCst);
         let page = Page::containing_address(VirtAddr::new(code));
         unsafe {
-            mapper.map_to(page, frame, flags, frame_alloc).unwrap().flush();
+            mapper
+                .map_to(page, frame, flags, frame_alloc)
+                .unwrap()
+                .flush();
         }
 
         unsafe {
@@ -155,12 +162,12 @@ impl<'a> Process<'a> {
 
                 "push rax",
                 "push rsi",
-                
+
                 "pushf",
                 "pop rax",
                 "or rax, 0x200",
                 "push rax",
-                
+
                 "push rcx",
                 "push rdx",
                 "iretq",

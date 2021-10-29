@@ -24,7 +24,7 @@ pub fn get_datetime() -> DateTime {
             convert_to_24h(read_cmos_register(0x04))
         } else {
             read_cmos_register(0x04)
-        }
+        },
     );
     let minutes = convert(format.1, read_cmos_register(0x02));
     let seconds = convert(format.1, read_cmos_register(0x00));
@@ -41,7 +41,7 @@ pub fn get_datetime() -> DateTime {
 fn convert_to_24h(value: u8) -> u8 {
     let is_pm = (value & 0x80) != 0;
     let mut value = value & 0x78;
-    
+
     if is_pm {
         value = value + 12;
     }
@@ -78,7 +78,7 @@ fn read_cmos_register(reg: u8) -> u8 {
         port70.write(reg);
         port71.read()
     };
-    
+
     x86_64::instructions::interrupts::enable();
     result
 }
