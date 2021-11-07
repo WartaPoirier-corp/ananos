@@ -147,7 +147,6 @@ impl<'a> Process<'a> {
     }
 
     pub fn switch(&self) {
-        crate::println!("swicthing to userspace");
         let data_sel = GDT.1.user_data_selector.0;
         let code_sel = GDT.1.user_code_selector.0;
 
