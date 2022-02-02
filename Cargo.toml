@@ -6,13 +6,15 @@ edition = "2018"
 
 [dependencies]
 acpi = "3.0.0"
-# adb = { path = "../ananos-db/adb", features = ["no_std"] }
-adb = { git = "https://github.com/WartaPoirier-corp/ananos-db", rev = "f6feb44ea65585178adc14184cc1541a3f2c5921", features = ["no_std"] }
+adb = { path = "../ananos-db/adb", features = ["no_std"] }
+# adb = { git = "https://github.com/WartaPoirier-corp/ananos-db", rev = "f6feb44ea65585178adc14184cc1541a3f2c5921", features = ["no_std"] }
+ahci = { path = "../ahci" }
 bootloader = { version = "0.10.1" }
 crossbeam-queue = { version = "0.2.1", default-features = false, features = ["alloc"] }
 conquer-once = { version = "0.2.1", default-features = false }
 futures-util = { version = "0.3.6", default-features = false, features = ["alloc"] }
 lazy_static = { version = "1.4.0", features = [ "spin_no_std" ] }
+log = "0.4"
 pc-keyboard = "0.5.1"
 pci_types = "0.2"
 pic8259 = "0.10.1"

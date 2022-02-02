@@ -5,17 +5,11 @@ use alloc::vec::Vec;
 
 pub static DB: spin::Mutex<Option<Db<Vec<u8>>>> = spin::Mutex::new(None);
 
-fn db_logger(args: core::fmt::Arguments) {
-    crate::println!("{}", args);
-}
-
 pub fn init() {
     let mut db = DB.lock();
-    *db = Some({
-        let mut datab = Db::read_from(Vec::from(*include_bytes!("../../test.adb"))).unwrap();
-        datab.set_logger(db_logger);
-        datab
-    });
+    *db = Some(
+        Db::read_from(Vec::from(*include_bytes!("../../test.adb"))).unwrap()
+    );
 }
 
 pub fn display_contents(db: &mut Db<Vec<u8>>) {

@@ -31,6 +31,9 @@ lazy_static::lazy_static! {
 pub fn init() {
     gdt::init();
     interrupt::init_idt();
+    log::set_logger(&serial::LOGGER).unwrap();
+    log::set_max_level(log::LevelFilter::Debug);
+    log::info!("yooo");
     unsafe {
         let mut pics = interrupt::PICS.lock();
         pics.initialize();

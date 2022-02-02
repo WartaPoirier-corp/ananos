@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use log::Level;
 use spin::Mutex;
 use uart_16550::SerialPort;
 
@@ -48,4 +49,24 @@ macro_rules! dbg {
             $($t)*
         }
     };
+}
+
+pub static LOGGER: SerialLogger = SerialLogger;
+
+pub struct SerialLogger;
+
+impl log::Log for SerialLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        // metadata.level() <= Level::Debug
+        true
+    }
+
+    fn log(&self, record: &log::Record) {
+        println!("logging");
+        if self.enabled(record.metadata()) {
+            println!("[{}] {}", record.metadata().level(), record.args());
+        }
+    }
+
+    fn flush(&self) {}
 }

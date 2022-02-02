@@ -6,10 +6,11 @@
 
 extern crate alloc;
 
+use ahci::RegisterHostToDeviceFis;
 use alloc::string::ToString;
 use alloc::sync::Arc;
 use core::{ops::DerefMut, panic::PanicInfo};
-use os::println;
+use os::{memory::AcpiHandler, println};
 
 #[cfg(not(test))]
 #[panic_handler]
@@ -127,12 +128,25 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
                     })
                     .unwrap();
             }
+
+            if device.class == 0x01 && device.sub_class == 0x06 {
+                let (addr, size) = match device.bars[5].unwrap() {
+                    pci_types::Bar::Memory32 { address, size, ..} => (address as usize, size as usize),
+                    pci_types::Bar::Memory64 { address, size, .. } => (address as usize, size as usize),
+                    _ => unreachable!(),
+                };
+                log::debug!("log is ready");
+                println!("loading ahci at {:x}", addr);
+                let mut ahci_controller = unsafe { ahci::Ahci::read(AcpiHandler, addr, size) };
+                println!("Found {} HBA ports", ahci_controller.ports().count());
+            }
         }
 
         if let Some(db) = db.as_mut() {
             os::db::display_contents(db);
         }
     }
+
 
     os::ready();
 
