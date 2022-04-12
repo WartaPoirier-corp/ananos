@@ -1,6 +1,7 @@
 use crate::gdt::GDT;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::arch::asm;
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
 use x86_64::instructions::interrupts;

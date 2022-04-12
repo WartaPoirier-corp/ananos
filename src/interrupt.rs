@@ -1,6 +1,7 @@
 use crate::gdt;
 use crate::println;
 use crate::process;
+use core::arch::asm;
 use pic8259::ChainedPics;
 use spin;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
@@ -92,9 +93,8 @@ extern "x86-interrupt" fn syscall(_stack: InterruptStackFrame) {
             let mut fb = crate::FB.lock();
             if let Some(ref mut fb) = *fb {
                 let buff = unsafe { core::slice::from_raw_parts_mut(fb.0 as *mut u8, fb.1) };
-                for byte in buff {
-                    *byte = arg1 as u8;
-                }
+                let arg1 = arg1 as u8;
+                buff.fill(arg1)
             }
         }
         1 => {
