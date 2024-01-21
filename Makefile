@@ -1,6 +1,6 @@
-OVMF_DIR=/nix/store/4n9rlkldjys08rgd8xq6rm1zmrgn5h5q-OVMF-202011-fd
-OVMF_FW=$(OVMF_DIR)/FV/OVMF_CODE.fd
-OVMF_VARS=$(OVMF_DIR)/FV/OVMF_VARS.fd
+OVMF_DIR=/usr/share/edk2-ovmf/x64/
+OVMF_FW=$(OVMF_DIR)/OVMF_CODE.fd
+OVMF_VARS=$(OVMF_DIR)/OVMF_VARS.fd
 PROJECT=bananos
 USB_DEV=/dev/sdc
 
@@ -15,7 +15,7 @@ build:
 
 efi_dir: build
 	mkdir -p build/fat/EFI/BOOT
-	cp target/x86_64-unknown-uefi/debug/$(PROJECT).efi build/fat/EFI/BOOT/BootX64.efi
+	cp target/x86_64-none-efi/debug/$(PROJECT).efi build/fat/EFI/BOOT/BootX64.efi
 	echo '\EFI\BOOT\BOOTX64.EFI' > build/fat/startup.nsh
 	cp -f $(OVMF_FW) build
 	cp -f $(OVMF_VARS) build
@@ -29,8 +29,8 @@ run: efi_dir
 		-m 128M \
 		-monitor vc:1024x768 \
 		-serial stdio \
-		-drive if=pflash,format=raw,readonly,file=./build/OVMF_CODE.fd \
-		-drive if=pflash,format=raw,file=./build/OVMF_VARS2.fd \
+		-drive if=pflash,format=raw,readonly=on,file=./build/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,file=./build/OVMF_VARS.fd \
 		-drive format=raw,file=fat:rw:./build/fat
 
 usb: efi_dir

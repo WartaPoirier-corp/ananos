@@ -13,7 +13,7 @@
   "pre-link-args": {
     "lld-link": [
       "/Subsystem:EFI_Application",
-      "/Entry:uefi_start"
+      "/Entry:efi_main"
     ]
   },
   "panic-strategy": "abort",
@@ -22,5 +22,6 @@
   "position-independent-executables": true,
   "exe-suffix": ".efi",
   "is-like-windows": true,
-  "emit-debug-gdb-scripts": false
+  "emit-debug-gdb-scripts": false,
+  "features": "-mmx,+sse"
 }
