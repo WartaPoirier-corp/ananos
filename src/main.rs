@@ -76,12 +76,12 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
     // with a system call
     // it also opens a stream of PCI devices and calls the debugger
     // to print info about its state
-    let proc = os::process::Process::create(
+    /*let proc = os::process::Process::create(
         &mut mapper,
         &mut frame_allocator,
         include_bytes!("../test.bin"),
     );
-    os::process::spawn(proc).unwrap();
+    os=::process::spawn(proc).unwrap();*/
 
     if let bootloader::boot_info::Optional::Some(rsdp) = boot_info.rsdp_addr {
         let acpi_tables =
@@ -131,22 +131,34 @@ fn kernel_main(boot_info: &'static mut bootloader::BootInfo) -> ! {
 
             if device.class == 0x01 && device.sub_class == 0x06 {
                 let (addr, size) = match device.bars[5].unwrap() {
-                    pci_types::Bar::Memory32 { address, size, ..} => (address as usize, size as usize),
-                    pci_types::Bar::Memory64 { address, size, .. } => (address as usize, size as usize),
+                    pci_types::Bar::Memory32 { address, size, .. } => {
+                        (address as usize, size as usize)
+                    }
+                    pci_types::Bar::Memory64 { address, size, .. } => {
+                        (address as usize, size as usize)
+                    }
                     _ => unreachable!(),
                 };
                 log::debug!("log is ready");
                 println!("loading ahci at {:x}", addr);
                 let mut ahci_controller = unsafe { ahci::Ahci::read(AcpiHandler, addr, size) };
-                println!("Found {} HBA ports", ahci_controller.ports().count());
+                {
+                    println!("Found {} HBA ports", ahci_controller.ports().count());
+                }
+                if let Some(command_slot) = ahci_controller
+                    .ports()
+                    .next()
+                    .and_then(|p| p.find_free_command_slot())
+                {
+                    let (command_table, physical_regions) = command_slot.command_table(handler)
+                }
             }
         }
 
-        if let Some(db) = db.as_mut() {
+        /* if let Some(db) = db.as_mut() {
             os::db::display_contents(db);
-        }
+        }*/
     }
-
 
     os::ready();
 
